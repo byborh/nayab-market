@@ -1,0 +1,148 @@
+---
+import Layout from '~/layouts/Layout.astro';
+import { products, categories, formatPrice } from '~/lib/products';
+
+const activeCat = Astro.url.searchParams.get('cat') ?? 'all';
+const filtered = activeCat === 'all' ? products : products.filter((p) => p.category === activeCat);
+---
+
+<Layout title="Boutique — Nayab Market" description="Découvrez notre sélection de produits afghans : fruits secs, épices, thés, riz basmati et plus.">
+  <section class="py-16 px-4 sm:px-6 bg-gradient-to-br from-lapis-900 via-lapis-800 to-pomegranate-900 text-sand-50 relative overflow-hidden">
+    <div class="absolute inset-0 bg-kilim-pattern opacity-50"></div>
+    <div class="relative z-10 max-w-7xl mx-auto text-center">
+      <h1 class="font-display text-4xl sm:text-5xl font-bold text-saffron-300 mb-3">Notre Boutique</h1>
+      <p class="font-accent text-xl text-sand-100 italic">Les saveurs afghanes livrées chez vous</p>
+    </div>
+  </section>
+
+  <section class="py-12 px-4 sm:px-6 bg-sand-50">
+    <div class="max-w-7xl mx-auto">
+      <div class="flex flex-wrap items-center justify-center gap-3 mb-10">
+        <a
+          href="/boutique"
+          class={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
+            activeCat === 'all'
+              ? 'bg-lapis-900 text-saffron-300'
+              : 'bg-white text-lapis-900 border border-saffron-300 hover:bg-saffron-100'
+          }`}
+        >
+          Tous
+        </a>
+        {
+          categories.map((cat) => (
+            <a
+              href={`/boutique?cat=${cat.id}`}
+              class={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
+                activeCat === cat.id
+                  ? 'bg-lapis-900 text-saffron-300'
+                  : 'bg-white text-lapis-900 border border-saffron-300 hover:bg-saffron-100'
+              }`}
+            >
+              {cat.emoji} {cat.name}
+            </a>
+          ))
+        }
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {
+          filtered.map((p) => (
+            <div class="group bg-white rounded-2xl overflow-hidden border-2 border-saffron-200 shadow-lg shadow-pomegranate-900/5 hover:-translate-y-2 hover:shadow-2xl hover:shadow-saffron-500/20 hover:border-saffron-400 transition-all flex flex-col">
+              <a href={`/produit/${p.slug}`} class="block relative aspect-square overflow-hidden bg-sand-100">
+                <img
+                  src={p.image}
+                  alt={p.name}
+                  loading="lazy"
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </a>
+              <div class="p-5 flex flex-col flex-1">
+                <a href={`/produit/${p.slug}`} class="font-display text-lg font-semibold text-lapis-900 mb-1 hover:text-pomegranate-700 transition">{p.name}</a>
+                <p class="text-xs text-lapis-600 mb-3 line-clamp-2 flex-1">{p.shortDescription}</p>
+                <div class="flex items-baseline justify-between mb-3">
+                  <span class="font-accent text-2xl font-bold text-pomegranate-700">{formatPrice(p.priceCents, p.currency)}</span>
+                  <span class="text-xs text-lapis-500">/ {p.unit}</span>
+                </div>
+                <button
+                  class="add-to-cart-btn w-full px-4 py-2.5 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold text-sm hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition-all"
+                  data-id={p.id}
+                  data-name={p.name}
+                  data-price={p.priceCents}
+                  data-image={p.image}
+                  data-unit={p.unit}
+                >
+                  + Ajouter au panier
+                </button>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <div
+    id="toast"
+    class="fixed bottom-6 right-6 z-50 bg-lapis-900 text-saffron-300 px-5 py-3 rounded-lg shadow-2xl border border-saffron-400/30 opacity-0 translate-y-4 transition-all pointer-events-none"
+  >
+    ✓ Ajouté au panier
+  </div>
+</Layout>
+
+<script>
+  type CartItem = {
+    id: string;
+    name: string;
+    priceCents: number;
+    image: string;
+    unit: string;
+    qty: number;
+  };
+
+  function loadCart(): CartItem[] {
+    try {
+      const raw = localStorage.getItem('nayab-cart');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveCart(cart: CartItem[]) {
+    localStorage.setItem('nayab-cart', JSON.stringify(cart));
+    window.dispatchEvent(new Event('nayab-cart-updated'));
+  }
+
+  function showToast() {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(1rem)';
+    }, 1800);
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.add-to-cart-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id!;
+      const cart = loadCart();
+      const existing = cart.find((i) => i.id === id);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        cart.push({
+          id,
+          name: btn.dataset.name!,
+          priceCents: Number(btn.dataset.price),
+          image: btn.dataset.image!,
+          unit: btn.dataset.unit!,
+          qty: 1,
+        });
+      }
+      saveCart(cart);
+      showToast();
+    });
+  });
+</script>

@@ -1,0 +1,39 @@
+---
+const items = [
+  { src: 'https://images.unsplash.com/photo-1601000938259-9e92002320b2?auto=format&fit=crop&w=700&q=70', label: 'Rayons d\'épices' },
+  { src: 'https://images.unsplash.com/photo-1599909533772-eb0c2b2f1c2c?auto=format&fit=crop&w=700&q=70', label: 'Fruits secs' },
+  { src: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=700&q=70', label: 'Miels & douceurs' },
+  { src: 'https://images.unsplash.com/photo-1597318236863-3e2af5b46be0?auto=format&fit=crop&w=700&q=70', label: 'Thés traditionnels' },
+  { src: 'https://images.unsplash.com/photo-1604908554027-9d3416b3a4f7?auto=format&fit=crop&w=700&q=70', label: 'Étals du bazar' },
+  { src: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=700&q=70', label: 'Riz basmati' },
+  { src: 'https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?auto=format&fit=crop&w=700&q=70', label: 'Plantes & infusions' },
+  { src: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=700&q=70', label: 'Épices entières' },
+];
+---
+
+<section class="py-24 px-4 sm:px-6 bg-gradient-to-br from-sand-50 to-sand-100" id="gallery">
+  <div class="max-w-7xl mx-auto">
+    <h2 class="font-display text-4xl sm:text-5xl font-bold text-center text-lapis-900 mb-4">
+      Dans Notre Univers
+    </h2>
+    <div class="w-24 h-0.5 bg-gradient-to-r from-transparent via-saffron-500 to-transparent mx-auto mb-16"></div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      {
+        items.map((item) => (
+          <div class="group relative aspect-square overflow-hidden rounded-xl cursor-pointer">
+            <img
+              src={item.src}
+              alt={item.label}
+              class="w-full h-full object-cover group-hover:scale-110 group-hover:rotate-1 transition-transform duration-500"
+              loading="lazy"
+            />
+            <div class="absolute inset-0 bg-gradient-to-br from-saffron-500/80 to-pomegranate-700/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <div class="text-white font-display text-lg text-center px-4">{item.label}</div>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>

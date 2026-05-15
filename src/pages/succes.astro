@@ -1,0 +1,39 @@
+---
+import Layout from '~/layouts/Layout.astro';
+
+export const prerender = false;
+
+const sessionId = Astro.url.searchParams.get('session_id');
+---
+
+<Layout title="Commande confirmée — Nayab Market">
+  <section class="py-24 px-4 sm:px-6 bg-gradient-to-br from-sand-50 to-sand-100 min-h-[70vh] flex items-center">
+    <div class="max-w-2xl mx-auto text-center">
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
+        <svg class="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <h1 class="font-display text-4xl sm:text-5xl font-bold text-lapis-900 mb-4">Merci pour votre commande !</h1>
+      <p class="text-lg text-lapis-700 mb-2">
+        Votre paiement a été confirmé. Vous recevrez un email avec les détails de votre commande sous peu.
+      </p>
+      {sessionId && <p class="text-sm text-lapis-500 mb-8">Référence : <code class="font-mono bg-sand-100 px-2 py-0.5 rounded">{sessionId.slice(-12)}</code></p>}
+
+      <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+        <a href="/" class="px-6 py-3 border-2 border-lapis-900 text-lapis-900 rounded-full font-semibold hover:bg-lapis-900 hover:text-saffron-300 transition-all">
+          Retour à l'accueil
+        </a>
+        <a href="/boutique" class="px-6 py-3 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition">
+          Continuer mes achats →
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  // Vider le panier après paiement réussi
+  localStorage.removeItem('nayab-cart');
+  window.dispatchEvent(new Event('nayab-cart-updated'));
+</script>

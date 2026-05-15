@@ -1,0 +1,181 @@
+---
+import Layout from '~/layouts/Layout.astro';
+import { products, getProductBySlug, formatPrice } from '~/lib/products';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const product = getProductBySlug(slug!);
+
+if (!product) {
+  return Astro.redirect('/boutique');
+}
+
+const related = products.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 3);
+---
+
+<Layout title={`${product.name} — Nayab Market`} description={product.shortDescription}>
+  <section class="py-16 px-4 sm:px-6 bg-sand-50">
+    <div class="max-w-6xl mx-auto">
+      <nav class="text-sm text-lapis-600 mb-8">
+        <a href="/" class="hover:text-pomegranate-700">Accueil</a>
+        <span class="mx-2">/</span>
+        <a href="/boutique" class="hover:text-pomegranate-700">Boutique</a>
+        <span class="mx-2">/</span>
+        <span class="text-lapis-900 font-semibold">{product.name}</span>
+      </nav>
+
+      <div class="grid lg:grid-cols-2 gap-12">
+        <div class="bg-white rounded-2xl overflow-hidden border-2 border-saffron-200 shadow-xl">
+          <img src={product.image} alt={product.name} class="w-full aspect-square object-cover" />
+        </div>
+
+        <div class="flex flex-col justify-center">
+          <h1 class="font-display text-4xl sm:text-5xl font-bold text-lapis-900 mb-3">{product.name}</h1>
+          <p class="text-lg text-lapis-700 mb-6 leading-relaxed">{product.description}</p>
+
+          <div class="flex items-baseline gap-3 mb-8">
+            <span class="font-accent text-5xl font-bold text-pomegranate-700">{formatPrice(product.priceCents, product.currency)}</span>
+            <span class="text-lapis-600">/ {product.unit}</span>
+          </div>
+
+          <div class="flex items-center gap-2 mb-8 text-sm">
+            {
+              product.stock > 0 ? (
+                <span class="inline-flex items-center gap-1.5 text-green-700">
+                  <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                  En stock
+                </span>
+              ) : (
+                <span class="inline-flex items-center gap-1.5 text-red-700">
+                  <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                  Rupture de stock
+                </span>
+              )
+            }
+            <span class="text-lapis-500">· Livraison sous 3-5 jours</span>
+          </div>
+
+          <div class="flex items-center gap-4 mb-6">
+            <div class="flex items-center border-2 border-saffron-300 rounded-full overflow-hidden">
+              <button id="qty-minus" class="w-10 h-12 text-lapis-900 hover:bg-saffron-100 font-bold text-xl transition" aria-label="Diminuer">−</button>
+              <span id="qty-display" class="w-12 text-center font-semibold">1</span>
+              <button id="qty-plus" class="w-10 h-12 text-lapis-900 hover:bg-saffron-100 font-bold text-xl transition" aria-label="Augmenter">+</button>
+            </div>
+            <button
+              id="add-to-cart"
+              class="flex-1 px-6 py-3.5 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition-all"
+              data-id={product.id}
+              data-name={product.name}
+              data-price={product.priceCents}
+              data-image={product.image}
+              data-unit={product.unit}
+            >
+              Ajouter au panier
+            </button>
+          </div>
+
+          <a
+            href="/panier"
+            class="text-center px-6 py-3 border-2 border-lapis-900 text-lapis-900 rounded-full font-semibold hover:bg-lapis-900 hover:text-saffron-300 transition-all"
+          >
+            Voir le panier →
+          </a>
+        </div>
+      </div>
+
+      {
+        related.length > 0 && (
+          <div class="mt-24">
+            <h2 class="font-display text-3xl font-bold text-lapis-900 mb-8 text-center">Vous aimerez aussi</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {related.map((p) => (
+                <a
+                  href={`/produit/${p.slug}`}
+                  class="group bg-white rounded-2xl overflow-hidden border-2 border-saffron-200 shadow-lg hover:-translate-y-1 hover:shadow-xl transition-all"
+                >
+                  <div class="aspect-square overflow-hidden bg-sand-100">
+                    <img src={p.image} alt={p.name} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                  </div>
+                  <div class="p-4">
+                    <h3 class="font-display text-lg font-semibold text-lapis-900 mb-1">{p.name}</h3>
+                    <span class="font-accent text-xl font-bold text-pomegranate-700">{formatPrice(p.priceCents, p.currency)}</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )
+      }
+    </div>
+  </section>
+
+  <div id="toast" class="fixed bottom-6 right-6 z-50 bg-lapis-900 text-saffron-300 px-5 py-3 rounded-lg shadow-2xl border border-saffron-400/30 opacity-0 translate-y-4 transition-all pointer-events-none">
+    ✓ Ajouté au panier
+  </div>
+</Layout>
+
+<script>
+  type CartItem = {
+    id: string;
+    name: string;
+    priceCents: number;
+    image: string;
+    unit: string;
+    qty: number;
+  };
+
+  let qty = 1;
+  const qtyDisplay = document.getElementById('qty-display')!;
+  document.getElementById('qty-plus')?.addEventListener('click', () => {
+    qty++;
+    qtyDisplay.textContent = String(qty);
+  });
+  document.getElementById('qty-minus')?.addEventListener('click', () => {
+    if (qty > 1) qty--;
+    qtyDisplay.textContent = String(qty);
+  });
+
+  function loadCart(): CartItem[] {
+    try {
+      return JSON.parse(localStorage.getItem('nayab-cart') || '[]');
+    } catch {
+      return [];
+    }
+  }
+  function saveCart(cart: CartItem[]) {
+    localStorage.setItem('nayab-cart', JSON.stringify(cart));
+    window.dispatchEvent(new Event('nayab-cart-updated'));
+  }
+  function showToast() {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(1rem)';
+    }, 1800);
+  }
+
+  document.getElementById('add-to-cart')?.addEventListener('click', (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
+    const id = btn.dataset.id!;
+    const cart = loadCart();
+    const existing = cart.find((i) => i.id === id);
+    if (existing) {
+      existing.qty += qty;
+    } else {
+      cart.push({
+        id,
+        name: btn.dataset.name!,
+        priceCents: Number(btn.dataset.price),
+        image: btn.dataset.image!,
+        unit: btn.dataset.unit!,
+        qty,
+      });
+    }
+    saveCart(cart);
+    showToast();
+  });
+</script>

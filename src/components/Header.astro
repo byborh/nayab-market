@@ -1,0 +1,87 @@
+---
+const pathname = Astro.url.pathname;
+const isHome = pathname === '/' || pathname === '';
+const navLinks = isHome
+  ? [
+      { href: '#about', label: 'À Propos' },
+      { href: '#categories', label: 'Catégories' },
+      { href: '/boutique', label: 'Boutique' },
+      { href: '#gallery', label: 'Galerie' },
+      { href: '#location', label: 'Contact' },
+    ]
+  : [
+      { href: '/', label: 'Accueil' },
+      { href: '/boutique', label: 'Boutique' },
+      { href: '/#location', label: 'Contact' },
+    ];
+---
+
+<header
+  class="fixed top-0 inset-x-0 z-50 bg-lapis-900/95 backdrop-blur-md border-b border-saffron-400/30"
+>
+  <nav class="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 py-4">
+    <a href="/" class="font-display text-xl sm:text-2xl font-bold text-saffron-300 tracking-widest hover:opacity-80 transition">
+      ✦ Nayab Market
+    </a>
+
+    <ul class="hidden lg:flex items-center gap-8 list-none">
+      {
+        navLinks.map((link) => (
+          <li>
+            <a
+              href={link.href}
+              class="text-sand-50 text-sm font-medium tracking-wide relative hover:text-saffron-300 transition after:content-[''] after:absolute after:-bottom-1.5 after:left-0 after:w-0 after:h-0.5 after:bg-saffron-400 after:transition-all hover:after:w-full"
+            >
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+
+    <div class="flex items-center gap-3">
+      <a
+        href="/panier"
+        id="cart-link"
+        class="relative flex items-center gap-2 text-sand-50 hover:text-saffron-300 transition px-3 py-2"
+        aria-label="Panier"
+      >
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="21" r="1"></circle>
+          <circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        <span
+          id="cart-count"
+          class="absolute -top-1 -right-1 bg-pomegranate-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center opacity-0 transition-opacity"
+        >0</span>
+      </a>
+
+      <a
+        href="/boutique"
+        class="hidden sm:inline-flex bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 px-5 py-2 rounded-full font-semibold text-sm hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition"
+      >
+        Commander
+      </a>
+    </div>
+  </nav>
+</header>
+
+<div class="h-[72px]"></div>
+
+<script>
+  function updateCartBadge() {
+    try {
+      const raw = localStorage.getItem('nayab-cart');
+      const cart = raw ? JSON.parse(raw) : [];
+      const count = cart.reduce((sum: number, i: { qty: number }) => sum + (i.qty || 0), 0);
+      const badge = document.getElementById('cart-count');
+      if (!badge) return;
+      badge.textContent = String(count);
+      badge.style.opacity = count > 0 ? '1' : '0';
+    } catch {}
+  }
+  updateCartBadge();
+  window.addEventListener('storage', updateCartBadge);
+  window.addEventListener('nayab-cart-updated', updateCartBadge);
+</script>

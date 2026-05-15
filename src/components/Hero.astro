@@ -1,0 +1,61 @@
+---
+---
+
+<section class="relative h-[88vh] min-h-[600px] overflow-hidden" id="hero">
+  <div
+    class="absolute inset-0 bg-cover bg-center"
+    style="background-image: url('https://images.unsplash.com/photo-1604908554027-9d3416b3a4f7?auto=format&fit=crop&w=1920&q=70')"
+  >
+  </div>
+  <div class="absolute inset-0 bg-gradient-to-br from-lapis-900/85 via-pomegranate-900/55 to-lapis-900/85"></div>
+  <div class="absolute inset-0 bg-kilim-pattern animate-pulse [animation-duration:8s]"></div>
+
+  <div class="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
+    <p class="font-accent text-saffron-300 text-lg sm:text-xl tracking-[0.4em] uppercase mb-4 animate-[fadeUp_0.8s_ease-out_0.1s_both]">
+      4 place de la Chapelle · Paris
+    </p>
+    <h1
+      class="font-display font-black text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-saffron-300 tracking-wider mb-4 drop-shadow-2xl animate-[fadeUp_0.8s_ease-out_0.2s_both]"
+    >
+      Nayab Market
+    </h1>
+    <p
+      class="font-accent text-xl sm:text-2xl md:text-3xl text-sand-100 italic mb-10 max-w-2xl animate-[fadeUp_0.8s_ease-out_0.4s_both]"
+    >
+      Un voyage au cœur des saveurs afghanes
+    </p>
+    <div class="flex flex-col sm:flex-row gap-4 animate-[fadeUp_0.8s_ease-out_0.6s_both]">
+      <a
+        href="/boutique"
+        class="px-8 py-4 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 font-semibold rounded-full hover:-translate-y-1 hover:shadow-2xl hover:shadow-saffron-500/40 transition-all"
+      >
+        Découvrir la Boutique
+      </a>
+      <a
+        href="#about"
+        class="px-8 py-4 bg-transparent border-2 border-saffron-300 text-saffron-300 font-semibold rounded-full hover:bg-saffron-300 hover:text-lapis-900 transition-all"
+      >
+        Notre Magasin
+      </a>
+    </div>
+  </div>
+
+  <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 animate-bounce">
+    <svg class="w-8 h-8 stroke-saffron-300 stroke-2 fill-none" viewBox="0 0 24 24">
+      <path d="M12 5v14M5 12l7 7 7-7"></path>
+    </svg>
+  </div>
+</section>
+
+<style>
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>

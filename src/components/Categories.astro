@@ -1,0 +1,63 @@
+---
+import { categories } from '~/lib/products';
+
+const categoryDetails: Record<string, { description: string; image: string }> = {
+  'fruits-secs': {
+    description: "Pistaches de Kerman, amandes Mamra, abricots, raisins, noix... Le terroir afghan dans toute sa richesse.",
+    image: 'https://images.unsplash.com/photo-1599909533772-eb0c2b2f1c2c?auto=format&fit=crop&w=800&q=70',
+  },
+  epices: {
+    description: 'Safran pur, cumin, cardamome, coriandre... Les épices essentielles à la cuisine afghane.',
+    image: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=70',
+  },
+  the: {
+    description: "Thés noirs et verts traditionnels, parfumés à la cardamome ou au jasmin. La pause afghane par excellence.",
+    image: 'https://images.unsplash.com/photo-1597318236863-3e2af5b46be0?auto=format&fit=crop&w=800&q=70',
+  },
+  epicerie: {
+    description: "Riz basmati, miels, légumineuses, conserves... Tout pour préparer vos plats traditionnels.",
+    image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=800&q=70',
+  },
+};
+---
+
+<section class="py-24 px-4 sm:px-6 bg-gradient-to-br from-sand-100 to-sand-50" id="categories">
+  <div class="max-w-7xl mx-auto">
+    <h2 class="font-display text-4xl sm:text-5xl font-bold text-center text-lapis-900 mb-4">
+      Nos Rayons
+    </h2>
+    <div class="w-24 h-0.5 bg-gradient-to-r from-transparent via-saffron-500 to-transparent mx-auto mb-16"></div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      {
+        categories.map((cat) => {
+          const details = categoryDetails[cat.id] || { description: '', image: '' };
+          return (
+            <a
+              href={`/boutique?cat=${cat.id}`}
+              class="group bg-white rounded-2xl overflow-hidden border-2 border-saffron-200 shadow-lg shadow-pomegranate-900/5 hover:-translate-y-2 hover:shadow-2xl hover:shadow-saffron-500/20 hover:border-saffron-400 transition-all"
+            >
+              <div class="relative h-56 overflow-hidden">
+                <img
+                  src={details.image}
+                  alt={cat.name}
+                  class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  loading="lazy"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-lapis-900/60 to-transparent"></div>
+                <div class="absolute bottom-3 left-3 text-3xl">{cat.emoji}</div>
+              </div>
+              <div class="p-6">
+                <h3 class="font-display text-xl font-semibold text-lapis-900 mb-2">{cat.name}</h3>
+                <p class="text-sm text-lapis-700 leading-relaxed">{details.description}</p>
+                <div class="mt-4 text-saffron-600 text-sm font-semibold flex items-center gap-1 group-hover:gap-2 transition-all">
+                  Découvrir <span>→</span>
+                </div>
+              </div>
+            </a>
+          );
+        })
+      }
+    </div>
+  </div>
+</section>
