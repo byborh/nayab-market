@@ -1,17 +1,18 @@
 ---
 import Layout from '~/layouts/Layout.astro';
-import { products, getProductBySlug, formatPrice } from '~/lib/products';
+import { getProducts, getProductBySlug, formatPrice } from '~/lib/products';
 
 export const prerender = false;
 
 const { slug } = Astro.params;
-const product = getProductBySlug(slug!);
+const product = await getProductBySlug(slug!);
 
 if (!product) {
   return Astro.redirect('/boutique');
 }
 
-const related = products.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 3);
+const allProducts = await getProducts();
+const related = allProducts.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 3);
 ---
 
 <Layout title={`${product.name} — Nayab Market`} description={product.shortDescription}>

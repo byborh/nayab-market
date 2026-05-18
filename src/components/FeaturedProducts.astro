@@ -1,6 +1,7 @@
 ---
-import { products, formatPrice } from '~/lib/products';
-const featured = products.slice(0, 4);
+import { getProducts, formatPrice } from '~/lib/products';
+const all = await getProducts();
+const featured = all.slice(0, 4);
 ---
 
 <section class="py-24 px-4 sm:px-6 bg-gradient-to-br from-sand-50 to-sand-100" id="featured">

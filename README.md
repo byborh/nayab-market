@@ -53,10 +53,84 @@ src/
 
 ## Ajouter un produit
 
-Édite `src/data/products.json`, push, et c'est en ligne après build.
+Deux options :
 
-Champs requis : `id`, `slug`, `name`, `category`, `description`, `shortDescription`,
+**Via Firebase (recommandé pour le client)** — espace admin web à `/admin` :
+- Le gérant se connecte avec email/mot de passe
+- Ajoute / modifie / supprime les produits en ligne, en temps réel
+- Voir section "Configuration Firebase" ci-dessous
+
+**En statique** — édite `src/data/products.json`, push, c'est en ligne après build.
+Utilisé en fallback quand Firebase n'est pas configuré.
+
+Champs : `id`, `slug`, `name`, `category`, `description`, `shortDescription`,
 `priceCents` (1490 = 14,90 €), `currency` ("eur"), `unit`, `image`, `stock`.
+
+## Configuration Firebase (espace admin)
+
+### 1. Créer le projet Firebase
+
+1. https://console.firebase.google.com → "Ajouter un projet" → `nayab-market`
+2. Désactiver Google Analytics (pas nécessaire)
+3. Une fois créé : ⚙️ → "Paramètres du projet" → "Vos applications" → icône `</>` web → enregistrer une app
+4. Copier les valeurs `apiKey`, `authDomain`, `projectId`, etc. dans le `.env` :
+
+```
+PUBLIC_FIREBASE_API_KEY=AIza...
+PUBLIC_FIREBASE_AUTH_DOMAIN=nayab-market.firebaseapp.com
+PUBLIC_FIREBASE_PROJECT_ID=nayab-market
+PUBLIC_FIREBASE_STORAGE_BUCKET=nayab-market.firebasestorage.app
+PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+PUBLIC_FIREBASE_APP_ID=...
+```
+
+### 2. Activer l'authentification
+
+Console Firebase → **Authentication** → "Commencer" → onglet "Sign-in method" → activer **Email/Password**.
+
+Puis onglet **Users** → "Add user" → renseigner l'email + mot de passe du gérant.
+C'est ce compte qui pourra se connecter sur `/admin`.
+
+### 3. Activer Firestore
+
+Console → **Firestore Database** → "Créer une base de données" → mode **production** → région `eur3` (Europe).
+
+### 4. Coller les règles de sécurité
+
+Firestore → onglet **Règles** → remplacer par :
+
+```js
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Catalogue : lecture publique, écriture pour utilisateurs authentifiés
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    // Commandes (à venir) : ni lecture ni écriture côté client
+    match /orders/{orderId} {
+      allow read, write: if false;
+    }
+  }
+}
+```
+
+Cliquer **Publier**.
+
+### 5. Premier import
+
+1. Relancer `npm run dev`
+2. Aller sur http://localhost:4321/admin
+3. Se connecter avec le compte créé à l'étape 2
+4. Cliquer **"Importer le seed"** pour pousser les 12 produits de `products.json` dans Firestore
+5. Voilà — la boutique lit maintenant les données depuis Firestore
+
+### Notes
+
+- Les images sont stockées en base64 directement dans le document Firestore (taille max ~1 Mo par doc, donc OK pour des images < 1000px de côté).
+- Pour des photos plus lourdes, passer à Firebase Storage ou Cloudinary plus tard.
+- L'API checkout Stripe valide les prix côté serveur via l'API REST Firestore — un client malveillant ne peut pas modifier les prix.
 
 ## Déploiement Cloudflare Pages
 

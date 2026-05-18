@@ -1,9 +1,12 @@
 ---
 import Layout from '~/layouts/Layout.astro';
-import { products, categories, formatPrice } from '~/lib/products';
+import { getProducts, categories, formatPrice } from '~/lib/products';
+
+export const prerender = false;
 
 const activeCat = Astro.url.searchParams.get('cat') ?? 'all';
-const filtered = activeCat === 'all' ? products : products.filter((p) => p.category === activeCat);
+const allProducts = await getProducts();
+const filtered = activeCat === 'all' ? allProducts : allProducts.filter((p) => p.category === activeCat);
 ---
 
 <Layout title="Boutique — Nayab Market" description="Découvrez notre sélection de produits afghans : fruits secs, épices, thés, riz basmati et plus.">

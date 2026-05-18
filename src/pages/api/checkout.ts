@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
-import { products } from '~/lib/products';
+import { getProducts } from '~/lib/products';
 
 export const prerender = false;
 
@@ -26,9 +26,10 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'Panier vide' }), { status: 400 });
   }
 
+  const allProducts = await getProducts();
   const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
   for (const it of body.items) {
-    const product = products.find((p) => p.id === it.id);
+    const product = allProducts.find((p) => p.id === it.id);
     if (!product) continue;
     const qty = Math.max(1, Math.min(99, Math.floor(Number(it.qty) || 1)));
     line_items.push({
