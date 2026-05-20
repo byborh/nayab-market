@@ -1,0 +1,388 @@
+---
+import Layout from '~/layouts/Layout.astro';
+import AdminNav from '~/components/AdminNav.astro';
+import { ORDER_STATUS_LABELS, ORDER_STATUS_OPTIONS } from '~/lib/orders';
+
+export const prerender = false;
+---
+
+<Layout title="Admin · Commandes — Nayab Market">
+  <section class="py-12 px-4 sm:px-6 bg-gradient-to-br from-lapis-900 via-lapis-800 to-pomegranate-900 text-sand-50 relative overflow-hidden">
+    <div class="absolute inset-0 bg-kilim-pattern opacity-50"></div>
+    <div class="relative z-10 max-w-7xl mx-auto text-center">
+      <h1 class="font-display text-4xl sm:text-5xl font-bold text-saffron-300 mb-2">Espace Gérant</h1>
+      <p class="font-accent text-lg text-sand-100 italic">Suivi et gestion des commandes</p>
+    </div>
+  </section>
+
+  <AdminNav />
+
+  <section class="py-10 px-4 sm:px-6 bg-sand-50 min-h-[70vh]">
+    <div class="max-w-7xl mx-auto">
+      <div id="not-configured" class="hidden max-w-2xl mx-auto bg-white border-2 border-saffron-300 rounded-2xl p-8 shadow-lg">
+        <h2 class="font-display text-2xl text-lapis-900 mb-3">⚙️ Firebase non configuré</h2>
+        <p class="text-lapis-700">Renseigne les variables <code class="bg-sand-100 px-1.5 rounded">PUBLIC_FIREBASE_*</code> dans <code class="bg-sand-100 px-1.5 rounded">.env</code> puis relance le serveur.</p>
+      </div>
+
+      <div id="login-section" class="hidden max-w-md mx-auto">
+        <div class="bg-white border-2 border-saffron-200 rounded-2xl p-8 shadow-lg">
+          <h2 class="font-display text-2xl text-lapis-900 mb-6 text-center">Connexion</h2>
+          <form id="login-form" class="space-y-4">
+            <div>
+              <label for="email" class="block text-sm font-semibold text-lapis-900 mb-1">Email</label>
+              <input type="email" id="email" required autocomplete="email" class="w-full px-4 py-2.5 border border-sand-300 rounded-lg bg-sand-50 focus:outline-none focus:border-saffron-400 focus:bg-white" />
+            </div>
+            <div>
+              <label for="password" class="block text-sm font-semibold text-lapis-900 mb-1">Mot de passe</label>
+              <input type="password" id="password" required autocomplete="current-password" class="w-full px-4 py-2.5 border border-sand-300 rounded-lg bg-sand-50 focus:outline-none focus:border-saffron-400 focus:bg-white" />
+            </div>
+            <p id="login-error" class="text-pomegranate-700 text-sm min-h-[1.25rem]"></p>
+            <button type="submit" class="w-full px-6 py-3 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition-all">Se connecter</button>
+          </form>
+        </div>
+      </div>
+
+      <div id="orders-section" class="hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 bg-white rounded-2xl p-5 border-2 border-saffron-200 shadow-md">
+          <div>
+            <div class="text-sm text-lapis-600">Connecté en tant que</div>
+            <div id="user-email" class="font-semibold text-lapis-900"></div>
+          </div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <select id="filter-status" class="px-4 py-2 border border-sand-300 rounded-lg bg-white text-sm font-semibold">
+              <option value="all">Tous les statuts</option>
+              {ORDER_STATUS_OPTIONS.map((s) => <option value={s}>{ORDER_STATUS_LABELS[s]}</option>)}
+            </select>
+            <button id="logout-btn" class="px-4 py-2 border-2 border-pomegranate-600 text-pomegranate-700 rounded-full font-semibold text-sm hover:bg-pomegranate-600 hover:text-white transition">Déconnexion</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+          <div class="bg-white rounded-xl p-4 border-2 border-saffron-200 shadow-sm">
+            <div class="text-xs text-lapis-600 uppercase tracking-wide">Total</div>
+            <div class="font-display text-2xl text-lapis-900" id="stat-total">0</div>
+          </div>
+          <div class="bg-white rounded-xl p-4 border-2 border-saffron-200 shadow-sm">
+            <div class="text-xs text-lapis-600 uppercase tracking-wide">À traiter</div>
+            <div class="font-display text-2xl text-saffron-600" id="stat-paid">0</div>
+          </div>
+          <div class="bg-white rounded-xl p-4 border-2 border-saffron-200 shadow-sm">
+            <div class="text-xs text-lapis-600 uppercase tracking-wide">En cours</div>
+            <div class="font-display text-2xl text-lapis-700" id="stat-processing">0</div>
+          </div>
+          <div class="bg-white rounded-xl p-4 border-2 border-saffron-200 shadow-sm">
+            <div class="text-xs text-lapis-600 uppercase tracking-wide">Expédiées</div>
+            <div class="font-display text-2xl text-blue-700" id="stat-shipped">0</div>
+          </div>
+          <div class="bg-white rounded-xl p-4 border-2 border-saffron-200 shadow-sm">
+            <div class="text-xs text-lapis-600 uppercase tracking-wide">Livrées</div>
+            <div class="font-display text-2xl text-green-700" id="stat-delivered">0</div>
+          </div>
+        </div>
+
+        <div id="orders-list" class="space-y-4">
+          <p class="text-center text-lapis-600 italic py-12">Chargement…</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal détail commande -->
+  <div id="order-modal" class="hidden fixed inset-0 z-[2000] bg-lapis-900/75 backdrop-blur-sm items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 sm:p-8 w-full max-w-2xl max-h-[92vh] overflow-y-auto border-t-4 border-saffron-500 relative">
+      <button id="close-order-modal" class="absolute top-3 right-4 text-3xl text-lapis-500 hover:text-pomegranate-700 leading-none">×</button>
+      <div id="order-detail"></div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { initializeApp, type FirebaseApp } from 'firebase/app';
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, type Auth, type User } from 'firebase/auth';
+  import { getFirestore, collection, onSnapshot, query, orderBy, type Firestore } from 'firebase/firestore';
+  import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, ORDER_STATUS_OPTIONS, type OrderStatus, type Order } from '~/lib/orders';
+
+  const config = {
+    apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY,
+    authDomain: import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.PUBLIC_FIREBASE_APP_ID,
+  };
+
+  const notConfigured = document.getElementById('not-configured')!;
+  const loginSection = document.getElementById('login-section')!;
+  const ordersSection = document.getElementById('orders-section')!;
+  const ordersList = document.getElementById('orders-list')!;
+  const filterStatus = document.getElementById('filter-status') as HTMLSelectElement;
+  const orderModal = document.getElementById('order-modal')!;
+  const orderDetail = document.getElementById('order-detail')!;
+
+  let app: FirebaseApp | null = null;
+  let auth: Auth | null = null;
+  let db: Firestore | null = null;
+  let currentUser: User | null = null;
+  let orders: Order[] = [];
+
+  function escapeHtml(s: string) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+  }
+  function fmt(cents: number, currency = 'EUR') {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency.toUpperCase() }).format(cents / 100);
+  }
+  function formatDate(value: unknown) {
+    if (!value) return '—';
+    let date: Date;
+    if (typeof value === 'object' && value && 'toDate' in value) {
+      date = (value as { toDate: () => Date }).toDate();
+    } else if (typeof value === 'number') {
+      date = new Date(value);
+    } else {
+      return '—';
+    }
+    return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(date);
+  }
+  function shortRef(id: string) {
+    return id.slice(-12).toUpperCase();
+  }
+  function showOrderModal(show: boolean) {
+    orderModal.classList.toggle('hidden', !show);
+    orderModal.classList.toggle('flex', show);
+  }
+
+  function renderStats(list: Order[]) {
+    const total = list.length;
+    const by: Record<OrderStatus, number> = { paid: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0 };
+    for (const o of list) by[o.status] = (by[o.status] || 0) + 1;
+    document.getElementById('stat-total')!.textContent = String(total);
+    document.getElementById('stat-paid')!.textContent = String(by.paid);
+    document.getElementById('stat-processing')!.textContent = String(by.processing);
+    document.getElementById('stat-shipped')!.textContent = String(by.shipped);
+    document.getElementById('stat-delivered')!.textContent = String(by.delivered);
+  }
+
+  function renderOrders() {
+    const filter = filterStatus.value;
+    const list = filter === 'all' ? orders : orders.filter((o) => o.status === filter);
+    renderStats(orders);
+
+    if (!list.length) {
+      ordersList.innerHTML = `<div class="bg-white rounded-2xl p-12 text-center border-2 border-saffron-200">
+        <p class="text-lapis-600 italic">Aucune commande ${filter === 'all' ? 'pour le moment' : 'pour ce statut'}.</p>
+      </div>`;
+      return;
+    }
+
+    ordersList.innerHTML = list
+      .map((o) => {
+        const statusClass = ORDER_STATUS_COLORS[o.status] || 'bg-sand-100 text-lapis-700 border-sand-300';
+        const itemsCount = o.items.reduce((s, i) => s + i.qty, 0);
+        return `
+        <div class="bg-white rounded-2xl border-2 border-saffron-200 shadow-md hover:shadow-xl transition-all overflow-hidden">
+          <div class="p-5 grid grid-cols-1 md:grid-cols-[1fr,auto,auto] gap-4 items-center">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-mono text-xs text-lapis-500">#${shortRef(o.id)}</span>
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold border ${statusClass}">${ORDER_STATUS_LABELS[o.status]}</span>
+              </div>
+              <div class="font-semibold text-lapis-900">${escapeHtml(o.customer.name || o.customer.email || 'Client')}</div>
+              <div class="text-sm text-lapis-600">${escapeHtml(o.customer.email || '')}</div>
+              <div class="text-xs text-lapis-500 mt-1">${itemsCount} article${itemsCount > 1 ? 's' : ''} · ${formatDate(o.createdAt)}</div>
+            </div>
+            <div class="font-accent text-2xl font-bold text-pomegranate-700 md:text-right">${fmt(o.amounts.total, o.amounts.currency)}</div>
+            <button data-id="${escapeHtml(o.id)}" class="open-order-btn px-5 py-2 bg-lapis-900 text-saffron-300 rounded-full text-sm font-semibold hover:bg-lapis-800 transition">
+              Détails →
+            </button>
+          </div>
+        </div>`;
+      })
+      .join('');
+
+    ordersList.querySelectorAll<HTMLButtonElement>('.open-order-btn').forEach((btn) => {
+      btn.addEventListener('click', () => openOrder(btn.dataset.id!));
+    });
+  }
+
+  function openOrder(id: string) {
+    const o = orders.find((x) => x.id === id);
+    if (!o) return;
+    const statusOptions = ORDER_STATUS_OPTIONS.map(
+      (s) => `<option value="${s}" ${o.status === s ? 'selected' : ''}>${ORDER_STATUS_LABELS[s]}</option>`,
+    ).join('');
+    const itemsRows = o.items
+      .map(
+        (i) => `<tr>
+          <td class="py-2 border-b border-sand-200"><div class="font-semibold text-lapis-900">${escapeHtml(i.name)}</div><div class="text-xs text-lapis-600">× ${i.qty}</div></td>
+          <td class="py-2 border-b border-sand-200 text-right font-semibold text-pomegranate-700">${fmt(i.unitAmount * i.qty, i.currency)}</td>
+        </tr>`,
+      )
+      .join('');
+
+    const a = o.shipping.address;
+    const addressLines = [o.shipping.name, a.line1, a.line2, [a.postalCode, a.city].filter(Boolean).join(' '), a.country]
+      .filter(Boolean)
+      .map((l) => escapeHtml(l!))
+      .join('<br>');
+
+    orderDetail.innerHTML = `
+      <div class="mb-5">
+        <div class="text-xs text-lapis-500 uppercase tracking-widest">Commande</div>
+        <div class="font-mono text-2xl font-bold text-lapis-900">#${shortRef(o.id)}</div>
+        <div class="text-sm text-lapis-600 mt-1">Reçue le ${formatDate(o.createdAt)}</div>
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-4 mb-6">
+        <div class="bg-sand-50 rounded-lg p-4">
+          <div class="text-xs text-lapis-600 uppercase tracking-wide mb-1">Client</div>
+          <div class="font-semibold text-lapis-900">${escapeHtml(o.customer.name || '—')}</div>
+          <div class="text-sm text-lapis-700">${escapeHtml(o.customer.email)}</div>
+          ${o.customer.phone ? `<div class="text-sm text-lapis-700">${escapeHtml(o.customer.phone)}</div>` : ''}
+        </div>
+        <div class="bg-sand-50 rounded-lg p-4">
+          <div class="text-xs text-lapis-600 uppercase tracking-wide mb-1">Livraison</div>
+          <div class="text-sm text-lapis-800 leading-relaxed">${addressLines || '<span class="italic text-lapis-500">Aucune adresse</span>'}</div>
+          ${o.shipping.method ? `<div class="text-xs text-lapis-600 mt-2">Mode : ${escapeHtml(o.shipping.method)}</div>` : ''}
+        </div>
+      </div>
+
+      <h3 class="font-display text-lg text-lapis-900 mb-2">Articles</h3>
+      <table class="w-full text-sm mb-4">${itemsRows}</table>
+      <div class="text-sm space-y-1 mb-6 pt-3 border-t border-sand-200">
+        <div class="flex justify-between"><span class="text-lapis-600">Sous-total</span><span>${fmt(o.amounts.subtotal, o.amounts.currency)}</span></div>
+        <div class="flex justify-between"><span class="text-lapis-600">Livraison</span><span>${fmt(o.amounts.shipping, o.amounts.currency)}</span></div>
+        <div class="flex justify-between font-bold text-lg text-lapis-900 pt-2 border-t border-lapis-900"><span>Total</span><span class="text-pomegranate-700">${fmt(o.amounts.total, o.amounts.currency)}</span></div>
+      </div>
+
+      <h3 class="font-display text-lg text-lapis-900 mb-3">Mise à jour</h3>
+      <form id="update-form" class="space-y-3 bg-sand-50 rounded-lg p-4">
+        <div>
+          <label class="block text-sm font-semibold text-lapis-900 mb-1">Statut</label>
+          <select id="u-status" class="w-full px-3 py-2 border border-sand-300 rounded-lg bg-white">${statusOptions}</select>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-semibold text-lapis-900 mb-1">N° de suivi</label>
+            <input type="text" id="u-tracking" value="${escapeHtml(o.shipping.trackingNumber || '')}" placeholder="Optionnel" class="w-full px-3 py-2 border border-sand-300 rounded-lg bg-white" />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-lapis-900 mb-1">URL de suivi</label>
+            <input type="url" id="u-tracking-url" value="${escapeHtml(o.shipping.trackingUrl || '')}" placeholder="https://..." class="w-full px-3 py-2 border border-sand-300 rounded-lg bg-white" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-lapis-900 mb-1">Notes internes</label>
+          <textarea id="u-notes" rows="2" class="w-full px-3 py-2 border border-sand-300 rounded-lg bg-white">${escapeHtml(o.notes || '')}</textarea>
+        </div>
+        <label class="flex items-center gap-2 text-sm text-lapis-700">
+          <input type="checkbox" id="u-notify" checked class="w-4 h-4" />
+          Envoyer un email au client si le statut passe à "Expédiée"
+        </label>
+        <p id="update-error" class="text-pomegranate-700 text-sm min-h-[1.25rem]"></p>
+        <div class="flex gap-3 justify-end">
+          <button type="submit" id="update-submit" class="px-5 py-2 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold text-sm hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition-all disabled:opacity-60">
+            Enregistrer
+          </button>
+        </div>
+      </form>`;
+
+    showOrderModal(true);
+
+    const form = document.getElementById('update-form') as HTMLFormElement;
+    const submitBtn = document.getElementById('update-submit') as HTMLButtonElement;
+    const errEl = document.getElementById('update-error')!;
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errEl.textContent = '';
+      submitBtn.disabled = true;
+      try {
+        const token = await currentUser!.getIdToken();
+        const res = await fetch(`/api/orders/${encodeURIComponent(o.id)}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            status: (document.getElementById('u-status') as HTMLSelectElement).value,
+            trackingNumber: (document.getElementById('u-tracking') as HTMLInputElement).value,
+            trackingUrl: (document.getElementById('u-tracking-url') as HTMLInputElement).value,
+            notes: (document.getElementById('u-notes') as HTMLTextAreaElement).value,
+            notify: (document.getElementById('u-notify') as HTMLInputElement).checked,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erreur');
+        showOrderModal(false);
+      } catch (err) {
+        errEl.textContent = (err as Error).message;
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  }
+
+  document.getElementById('close-order-modal')!.addEventListener('click', () => showOrderModal(false));
+  orderModal.addEventListener('click', (e) => {
+    if (e.target === orderModal) showOrderModal(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !orderModal.classList.contains('hidden')) showOrderModal(false);
+  });
+  filterStatus.addEventListener('change', renderOrders);
+
+  const isConfigured = Boolean(config.apiKey && config.projectId);
+  if (!isConfigured) {
+    notConfigured.classList.remove('hidden');
+  } else {
+    app = initializeApp(config);
+    auth = getAuth(app);
+    db = getFirestore(app);
+
+    onAuthStateChanged(auth, (user) => {
+      currentUser = user;
+      if (user) {
+        document.getElementById('user-email')!.textContent = user.email || '(sans email)';
+        loginSection.classList.add('hidden');
+        ordersSection.classList.remove('hidden');
+        subscribeOrders();
+      } else {
+        loginSection.classList.remove('hidden');
+        ordersSection.classList.add('hidden');
+        orders = [];
+      }
+    });
+
+    document.getElementById('login-form')!.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('login-error')!;
+      errEl.textContent = '';
+      try {
+        await signInWithEmailAndPassword(
+          auth!,
+          (document.getElementById('email') as HTMLInputElement).value,
+          (document.getElementById('password') as HTMLInputElement).value,
+        );
+      } catch {
+        errEl.textContent = 'Identifiants invalides.';
+      }
+    });
+
+    document.getElementById('logout-btn')!.addEventListener('click', () => signOut(auth!));
+  }
+
+  function subscribeOrders() {
+    if (!db) return;
+    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+    onSnapshot(
+      q,
+      (snap) => {
+        orders = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Order, 'id'>) }));
+        renderOrders();
+      },
+      (err) => {
+        ordersList.innerHTML = `<p class="text-center text-pomegranate-700 py-8">Erreur de chargement : ${escapeHtml(err.message)}</p>`;
+      },
+    );
+  }
+</script>

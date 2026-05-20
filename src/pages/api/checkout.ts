@@ -40,7 +40,8 @@ export const POST: APIRoute = async ({ request }) => {
         product_data: {
           name: product.name,
           description: `${product.shortDescription} — ${product.unit}`,
-          images: [product.image],
+          images: product.image ? [product.image] : undefined,
+          metadata: { productId: product.id, slug: product.slug },
         },
       },
     });

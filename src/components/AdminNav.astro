@@ -1,0 +1,26 @@
+---
+const pathname = Astro.url.pathname;
+const tabs = [
+  { href: '/admin', label: 'Produits', match: pathname === '/admin' || pathname === '/admin/' },
+  { href: '/admin/commandes', label: 'Commandes', match: pathname.startsWith('/admin/commandes') },
+];
+---
+
+<div class="bg-lapis-900 text-sand-50 border-b border-saffron-400/30">
+  <div class="max-w-7xl mx-auto flex gap-1 px-4 sm:px-6">
+    {
+      tabs.map((t) => (
+        <a
+          href={t.href}
+          class={`px-5 py-3 text-sm font-semibold tracking-wide transition relative ${
+            t.match
+              ? 'text-saffron-300 border-b-2 border-saffron-400'
+              : 'text-sand-200 hover:text-saffron-300 border-b-2 border-transparent'
+          }`}
+        >
+          {t.label}
+        </a>
+      ))
+    }
+  </div>
+</div>

@@ -108,9 +108,13 @@ service cloud.firestore {
       allow read: if true;
       allow write: if request.auth != null;
     }
-    // Commandes (à venir) : ni lecture ni écriture côté client
+    // Commandes :
+    //  - écriture serveur uniquement (Firebase Admin SDK contourne ces règles)
+    //  - lecture par l'admin connecté (admin panel)
+    //  - lecture publique BLOQUÉE — la page /commande/[id] passe par le serveur
     match /orders/{orderId} {
-      allow read, write: if false;
+      allow read: if request.auth != null;
+      allow write: if false;
     }
   }
 }
@@ -131,6 +135,76 @@ Cliquer **Publier**.
 - Les images sont stockées en base64 directement dans le document Firestore (taille max ~1 Mo par doc, donc OK pour des images < 1000px de côté).
 - Pour des photos plus lourdes, passer à Firebase Storage ou Cloudinary plus tard.
 - L'API checkout Stripe valide les prix côté serveur via l'API REST Firestore — un client malveillant ne peut pas modifier les prix.
+
+## Persistance des commandes — Firebase Admin SDK
+
+Quand Stripe confirme un paiement, le webhook (`/api/webhook`) doit **écrire dans Firestore** sous l'identité serveur (les règles publiques bloquent l'écriture client sur `orders`).
+
+### 1. Générer un service account
+
+Console Firebase → ⚙️ **Paramètres du projet** → onglet **Comptes de service**
+→ "Générer une nouvelle clé privée" → confirme → un fichier JSON est téléchargé.
+
+Ouvre le JSON, tu y trouves notamment :
+```json
+{
+  "project_id": "nayab-market",
+  "client_email": "firebase-adminsdk-xxx@nayab-market.iam.gserviceaccount.com",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEv...\n-----END PRIVATE KEY-----\n"
+}
+```
+
+### 2. Reporte dans `.env`
+
+```
+FIREBASE_PROJECT_ID=nayab-market
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxx@nayab-market.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+```
+
+⚠️ **Garde le JSON et la `FIREBASE_PRIVATE_KEY` secrets** — ne jamais commit. `.env` est déjà dans `.gitignore`.
+
+### 3. Test
+
+Une fois `.env` rempli et le serveur relancé :
+- Fais un paiement test (carte `4242 4242 4242 4242`)
+- Webhook Stripe → la commande apparaît dans Firestore → `/admin/commandes`
+
+## Emails — Resend
+
+### 1. Créer le compte Resend
+
+https://resend.com → inscription (gratuit, 100 emails/jour).
+
+### 2. Récupérer la clé API
+
+Dashboard Resend → **API Keys** → "Create API Key" → nom : `nayab-market-dev` → copier la clé `re_...`.
+
+### 3. Configurer le `.env`
+
+```
+RESEND_API_KEY=re_xxx
+RESEND_FROM_EMAIL="Nayab Market <onboarding@resend.dev>"
+ADMIN_NOTIFICATION_EMAIL=gerant@nayabmarket.fr
+```
+
+**Important** : tant qu'aucun domaine n'est vérifié dans Resend, tu ne peux envoyer **que vers l'email du compte Resend**. Pour envoyer aux vrais clients :
+
+1. Resend → **Domains** → "Add Domain" → entrer `nayabmarket.fr` (ou autre)
+2. Copier les enregistrements DNS dans le registrar (OVH, Gandi, etc.)
+3. Une fois vérifié, changer `RESEND_FROM_EMAIL` pour `"Nayab Market <commandes@nayabmarket.fr>"`
+
+### Types d'emails envoyés
+
+| Événement | Destinataire | Quand |
+|---|---|---|
+| Confirmation de commande | Client | Webhook `checkout.session.completed` |
+| Alerte nouvelle commande | Gérant (`ADMIN_NOTIFICATION_EMAIL`) | Webhook `checkout.session.completed` |
+| Notification d'expédition | Client | Admin change le statut en "Expédiée" (avec case "Notifier" cochée) |
+
+### Stripe envoie aussi des reçus
+
+Dans le dashboard Stripe → Settings → Customer emails → activer "Successful payments". Stripe enverra automatiquement un reçu standard. Nos emails Resend sont des emails brandés Nayab Market en plus.
 
 ## Déploiement Cloudflare Pages
 

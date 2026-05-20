@@ -1,0 +1,169 @@
+---
+import Layout from '~/layouts/Layout.astro';
+import { getAdminFirestore } from '~/lib/firebase-admin';
+import { ORDER_STATUS_LABELS, type Order, type OrderStatus } from '~/lib/orders';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+let order: (Order & { createdAt: number; paidAt: number; shippedAt: number | null; deliveredAt: number | null }) | null = null;
+let errorMessage: string | null = null;
+
+const db = getAdminFirestore();
+if (!db) {
+  errorMessage = 'Service indisponible. Firebase Admin n\'est pas configuré.';
+} else if (id) {
+  try {
+    const snap = await db.collection('orders').doc(id).get();
+    if (snap.exists) {
+      const data = snap.data() as Record<string, unknown>;
+      const toMs = (v: unknown): number => {
+        if (!v) return 0;
+        if (typeof v === 'number') return v;
+        if (typeof v === 'object' && v && 'toMillis' in v) return (v as { toMillis: () => number }).toMillis();
+        return 0;
+      };
+      order = {
+        ...(data as Order),
+        id: snap.id,
+        createdAt: toMs(data.createdAt),
+        paidAt: toMs(data.paidAt),
+        shippedAt: toMs(data.shippedAt) || null,
+        deliveredAt: toMs(data.deliveredAt) || null,
+      };
+    } else {
+      errorMessage = 'Commande introuvable.';
+    }
+  } catch (err) {
+    errorMessage = err instanceof Error ? err.message : 'Erreur de lecture.';
+  }
+}
+
+function fmt(cents: number, currency = 'EUR'): string {
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency.toUpperCase() }).format(cents / 100);
+}
+function formatDate(ms: number): string {
+  if (!ms) return '—';
+  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(ms));
+}
+
+const steps: Array<{ status: OrderStatus; label: string; done: boolean; date: number | null }> = order
+  ? [
+      { status: 'paid', label: 'Paiement reçu', done: order.paidAt > 0, date: order.paidAt || null },
+      {
+        status: 'processing',
+        label: 'En préparation',
+        done: order.status === 'processing' || order.status === 'shipped' || order.status === 'delivered',
+        date: null,
+      },
+      { status: 'shipped', label: 'Expédiée', done: order.status === 'shipped' || order.status === 'delivered', date: order.shippedAt },
+      { status: 'delivered', label: 'Livrée', done: order.status === 'delivered', date: order.deliveredAt },
+    ]
+  : [];
+const shortRef = order ? order.id.slice(-12).toUpperCase() : '';
+---
+
+<Layout title={order ? `Commande #${shortRef} — Nayab Market` : 'Commande — Nayab Market'}>
+  <section class="py-12 px-4 sm:px-6 bg-gradient-to-br from-lapis-900 via-lapis-800 to-pomegranate-900 text-sand-50 relative overflow-hidden">
+    <div class="absolute inset-0 bg-kilim-pattern opacity-50"></div>
+    <div class="relative z-10 max-w-3xl mx-auto text-center">
+      <h1 class="font-display text-3xl sm:text-4xl font-bold text-saffron-300 mb-1">Suivi de commande</h1>
+      {order && <p class="font-mono text-sand-100">#{shortRef}</p>}
+    </div>
+  </section>
+
+  <section class="py-12 px-4 sm:px-6 bg-sand-50 min-h-[60vh]">
+    <div class="max-w-3xl mx-auto">
+      {errorMessage && (
+        <div class="bg-white border-2 border-pomegranate-300 rounded-2xl p-8 text-center shadow-lg">
+          <p class="text-pomegranate-700 mb-4">{errorMessage}</p>
+          <a href="/" class="inline-block px-6 py-3 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold">Retour à l'accueil</a>
+        </div>
+      )}
+
+      {order && (
+        <div class="space-y-6">
+          {order.status === 'cancelled' ? (
+            <div class="bg-pomegranate-50 border-2 border-pomegranate-300 rounded-2xl p-6 text-center">
+              <h2 class="font-display text-xl text-pomegranate-700 mb-1">Commande annulée</h2>
+              <p class="text-pomegranate-700 text-sm">Si vous avez une question, contactez-nous en répondant à votre email de commande.</p>
+            </div>
+          ) : (
+            <div class="bg-white rounded-2xl p-6 sm:p-8 border-2 border-saffron-200 shadow-lg">
+              <h2 class="font-display text-xl text-lapis-900 mb-6">Statut : <span class="text-pomegranate-700">{ORDER_STATUS_LABELS[order.status]}</span></h2>
+              <div class="relative pl-2">
+                {steps.map((step, idx) => (
+                  <div class="flex gap-4 pb-6 last:pb-0 relative">
+                    {idx < steps.length - 1 && (
+                      <div class={`absolute left-[15px] top-8 w-0.5 h-full ${step.done ? 'bg-saffron-400' : 'bg-sand-200'}`}></div>
+                    )}
+                    <div class={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${step.done ? 'bg-saffron-400 text-lapis-900' : 'bg-sand-200 text-lapis-500'}`}>
+                      {step.done ? '✓' : idx + 1}
+                    </div>
+                    <div class="flex-1 pt-1">
+                      <div class={`font-semibold ${step.done ? 'text-lapis-900' : 'text-lapis-500'}`}>{step.label}</div>
+                      {step.date && <div class="text-xs text-lapis-600">{formatDate(step.date)}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {order.shipping.trackingNumber && (
+                <div class="mt-4 p-4 bg-saffron-50 border border-saffron-300 rounded-lg">
+                  <div class="text-xs text-lapis-600 uppercase tracking-wide">Numéro de suivi</div>
+                  <div class="font-mono font-bold text-lapis-900 mt-1 break-all">{order.shipping.trackingNumber}</div>
+                  {order.shipping.trackingUrl && (
+                    <a href={order.shipping.trackingUrl} target="_blank" rel="noopener" class="inline-block mt-2 text-pomegranate-700 font-semibold hover:underline">
+                      Suivre le colis →
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div class="bg-white rounded-2xl p-6 sm:p-8 border-2 border-saffron-200 shadow-lg">
+            <h2 class="font-display text-xl text-lapis-900 mb-4">Récapitulatif</h2>
+            <div class="space-y-3 mb-4">
+              {order.items.map((i) => (
+                <div class="flex justify-between items-baseline pb-3 border-b border-sand-200">
+                  <div>
+                    <div class="font-semibold text-lapis-900">{i.name}</div>
+                    <div class="text-sm text-lapis-600">× {i.qty}</div>
+                  </div>
+                  <div class="font-accent text-lg font-bold text-pomegranate-700">{fmt(i.unitAmount * i.qty, i.currency)}</div>
+                </div>
+              ))}
+            </div>
+            <div class="text-sm space-y-1 pt-2">
+              <div class="flex justify-between"><span class="text-lapis-600">Sous-total</span><span>{fmt(order.amounts.subtotal, order.amounts.currency)}</span></div>
+              <div class="flex justify-between"><span class="text-lapis-600">Livraison{order.shipping.method ? ` (${order.shipping.method})` : ''}</span><span>{fmt(order.amounts.shipping, order.amounts.currency)}</span></div>
+              <div class="flex justify-between font-bold text-lg text-lapis-900 pt-3 mt-2 border-t-2 border-lapis-900"><span>Total</span><span class="text-pomegranate-700">{fmt(order.amounts.total, order.amounts.currency)}</span></div>
+            </div>
+          </div>
+
+          {(order.shipping.name || order.shipping.address?.line1) && (
+            <div class="bg-white rounded-2xl p-6 sm:p-8 border-2 border-saffron-200 shadow-lg">
+              <h2 class="font-display text-xl text-lapis-900 mb-3">Adresse de livraison</h2>
+              <div class="text-lapis-800 leading-relaxed">
+                {order.shipping.name && <div>{order.shipping.name}</div>}
+                {order.shipping.address?.line1 && <div>{order.shipping.address.line1}</div>}
+                {order.shipping.address?.line2 && <div>{order.shipping.address.line2}</div>}
+                {(order.shipping.address?.postalCode || order.shipping.address?.city) && (
+                  <div>{[order.shipping.address?.postalCode, order.shipping.address?.city].filter(Boolean).join(' ')}</div>
+                )}
+                {order.shipping.address?.country && <div>{order.shipping.address.country}</div>}
+              </div>
+            </div>
+          )}
+
+          <div class="text-center">
+            <a href="/boutique" class="inline-block px-6 py-3 border-2 border-lapis-900 text-lapis-900 rounded-full font-semibold hover:bg-lapis-900 hover:text-saffron-300 transition-all">
+              Continuer mes achats →
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  </section>
+</Layout>

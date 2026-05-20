@@ -11,6 +11,12 @@ interface ImportMetaEnv {
   readonly PUBLIC_FIREBASE_STORAGE_BUCKET: string;
   readonly PUBLIC_FIREBASE_MESSAGING_SENDER_ID: string;
   readonly PUBLIC_FIREBASE_APP_ID: string;
+  readonly FIREBASE_PROJECT_ID: string;
+  readonly FIREBASE_CLIENT_EMAIL: string;
+  readonly FIREBASE_PRIVATE_KEY: string;
+  readonly RESEND_API_KEY: string;
+  readonly RESEND_FROM_EMAIL: string;
+  readonly ADMIN_NOTIFICATION_EMAIL: string;
 }
 
 interface ImportMeta {

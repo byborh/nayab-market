@@ -1,18 +1,21 @@
 ---
 import Layout from '~/layouts/Layout.astro';
+import AdminNav from '~/components/AdminNav.astro';
 import { categories } from '~/lib/products';
 
 export const prerender = false;
 ---
 
-<Layout title="Admin — Nayab Market" description="Espace de gestion des produits">
-  <section class="py-16 px-4 sm:px-6 bg-gradient-to-br from-lapis-900 via-lapis-800 to-pomegranate-900 text-sand-50 relative overflow-hidden">
+<Layout title="Admin · Produits — Nayab Market" description="Espace de gestion des produits">
+  <section class="py-12 px-4 sm:px-6 bg-gradient-to-br from-lapis-900 via-lapis-800 to-pomegranate-900 text-sand-50 relative overflow-hidden">
     <div class="absolute inset-0 bg-kilim-pattern opacity-50"></div>
     <div class="relative z-10 max-w-7xl mx-auto text-center">
       <h1 class="font-display text-4xl sm:text-5xl font-bold text-saffron-300 mb-2">Espace Gérant</h1>
       <p class="font-accent text-lg text-sand-100 italic">Gestion du catalogue produits</p>
     </div>
   </section>
+
+  <AdminNav />
 
   <section class="py-12 px-4 sm:px-6 bg-sand-50 min-h-[70vh]">
     <div class="max-w-7xl mx-auto">
