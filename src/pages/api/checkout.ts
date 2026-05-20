@@ -32,6 +32,14 @@ export const POST: APIRoute = async ({ request }) => {
     const product = allProducts.find((p) => p.id === it.id);
     if (!product) continue;
     const qty = Math.max(1, Math.min(99, Math.floor(Number(it.qty) || 1)));
+
+    // Stripe n'accepte pas les data:image base64 (limité à 2048 chars, HTTPS uniquement).
+    // On envoie l'image SEULEMENT si c'est une vraie URL publique.
+    const stripeImage =
+      product.image && /^https?:\/\//.test(product.image) && product.image.length <= 2048
+        ? [product.image]
+        : undefined;
+
     line_items.push({
       quantity: qty,
       price_data: {
@@ -40,7 +48,7 @@ export const POST: APIRoute = async ({ request }) => {
         product_data: {
           name: product.name,
           description: `${product.shortDescription} — ${product.unit}`,
-          images: product.image ? [product.image] : undefined,
+          images: stripeImage,
           metadata: { productId: product.id, slug: product.slug },
         },
       },
