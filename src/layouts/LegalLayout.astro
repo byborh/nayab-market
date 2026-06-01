@@ -1,0 +1,74 @@
+---
+import Layout from '~/layouts/Layout.astro';
+
+export interface Props {
+  title: string;
+  subtitle?: string;
+  description?: string;
+  lastUpdated?: string;
+}
+
+const { title, subtitle, description, lastUpdated } = Astro.props;
+---
+
+<Layout title={`${title} — Nayab Market`} description={description ?? title}>
+  <section class="py-12 px-4 sm:px-6 bg-gradient-to-br from-lapis-900 via-lapis-800 to-pomegranate-900 text-sand-50 relative overflow-hidden">
+    <div class="absolute inset-0 bg-kilim-pattern opacity-50"></div>
+    <div class="relative z-10 max-w-4xl mx-auto text-center">
+      <h1 class="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-saffron-300 mb-2">{title}</h1>
+      {subtitle && <p class="font-accent text-lg text-sand-100 italic">{subtitle}</p>}
+    </div>
+  </section>
+
+  <section class="py-12 px-4 sm:px-6 bg-sand-50">
+    <article class="max-w-3xl mx-auto bg-white rounded-2xl border-2 border-saffron-200 shadow-lg p-6 sm:p-10 prose-styled">
+      {lastUpdated && <p class="text-sm text-lapis-500 italic mb-6">Dernière mise à jour : {lastUpdated}</p>}
+      <slot />
+    </article>
+  </section>
+
+  <style is:global>
+    .prose-styled h2 {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: #0d1f3f;
+      margin: 2rem 0 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #ffc445;
+    }
+    .prose-styled h3 {
+      font-family: 'Playfair Display', serif;
+      font-weight: 600;
+      font-size: 1.15rem;
+      color: #0d1f3f;
+      margin: 1.5rem 0 0.5rem;
+    }
+    .prose-styled p,
+    .prose-styled li {
+      color: #142e5d;
+      line-height: 1.7;
+      margin-bottom: 0.75rem;
+    }
+    .prose-styled ul {
+      list-style: disc;
+      padding-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .prose-styled a {
+      color: #751515;
+      text-decoration: underline;
+    }
+    .prose-styled a:hover {
+      color: #9b1c1c;
+    }
+    .prose-styled .placeholder {
+      background: #fff8e6;
+      border-left: 3px solid #f5ab1c;
+      padding: 0.25rem 0.5rem;
+      font-family: ui-monospace, monospace;
+      font-size: 0.9em;
+      color: #7d4d03;
+    }
+  </style>
+</Layout>

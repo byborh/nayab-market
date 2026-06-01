@@ -1,0 +1,97 @@
+---
+import Layout from '~/layouts/Layout.astro';
+
+const faqs = [
+  {
+    cat: 'Commande',
+    items: [
+      { q: 'Comment passer commande ?', a: 'Parcourez la boutique, ajoutez vos produits au panier, puis cliquez sur "Procéder au paiement". Vous serez redirigé vers une page de paiement sécurisée Stripe pour finaliser votre commande.' },
+      { q: 'Puis-je modifier ma commande après paiement ?', a: 'Contactez-nous le plus rapidement possible via le formulaire de contact. Tant que la commande n\'a pas été expédiée, nous ferons notre maximum pour la modifier ou l\'annuler.' },
+      { q: 'Comment savoir si ma commande est confirmée ?', a: 'Dès que le paiement est validé, vous recevez un email de confirmation avec votre numéro de commande et un lien pour la suivre en temps réel.' },
+    ],
+  },
+  {
+    cat: 'Paiement',
+    items: [
+      { q: 'Quels moyens de paiement acceptez-vous ?', a: 'Carte bancaire (Visa, Mastercard, American Express) via Stripe, notre prestataire de paiement sécurisé certifié PCI DSS.' },
+      { q: 'Mes données bancaires sont-elles en sécurité ?', a: 'Oui. Nous ne stockons aucune donnée bancaire. Le paiement est entièrement géré par Stripe sur une page chiffrée HTTPS.' },
+      { q: 'Puis-je obtenir une facture ?', a: 'Oui, sur simple demande à notre service client. Pensez à nous communiquer vos coordonnées de facturation si elles diffèrent de l\'adresse de livraison.' },
+    ],
+  },
+  {
+    cat: 'Livraison',
+    items: [
+      { q: 'Quels sont les délais de livraison ?', a: 'Livraison Standard : 3 à 5 jours ouvrés. Livraison Express : 1 à 2 jours ouvrés. Les délais courent à partir de l\'expédition de la commande.' },
+      { q: 'Quels sont les frais de livraison ?', a: 'Standard : 5,90 €. Express : 9,90 €. Tarifs valables pour la France métropolitaine.' },
+      { q: 'Livrez-vous à l\'étranger ?', a: 'Oui, nous livrons en Belgique, au Luxembourg, en Allemagne, en Suisse, en Espagne, en Italie et aux Pays-Bas. Les frais varient selon la destination.' },
+      { q: 'Comment suivre ma commande ?', a: 'Un lien personnel de suivi est envoyé dans votre email de confirmation. Dès que votre colis part, vous recevez le numéro de suivi du transporteur.' },
+    ],
+  },
+  {
+    cat: 'Produits',
+    items: [
+      { q: 'Vos produits sont-ils authentiques ?', a: 'Oui. Nous sélectionnons nos produits directement auprès de producteurs et fournisseurs afghans de confiance. Chaque référence est goûtée et validée par nos soins.' },
+      { q: 'Comment conserver les fruits secs et épices ?', a: 'Dans un endroit sec, à l\'abri de la lumière directe et de l\'humidité. Une fois ouverts, les sachets peuvent être conservés plusieurs mois dans un récipient hermétique.' },
+      { q: 'Vos produits contiennent-ils des allergènes ?', a: 'Les fruits à coque et les graines de sésame sont présents dans notre atelier. Des traces peuvent exister dans les autres produits. En cas d\'allergie sévère, contactez-nous avant de commander.' },
+    ],
+  },
+  {
+    cat: 'Retours & remboursements',
+    items: [
+      { q: 'Puis-je retourner un produit ?', a: 'Vous disposez d\'un droit de rétractation de 14 jours après réception, sauf pour les denrées alimentaires susceptibles de se périmer rapidement (fruits frais notamment). Voir nos CGV pour le détail.' },
+      { q: 'Mon produit est arrivé endommagé, que faire ?', a: 'Contactez-nous sous 7 jours après réception, avec une photo du produit et de l\'emballage. Nous procéderons à un remplacement ou un remboursement.' },
+      { q: 'Sous combien de temps suis-je remboursé ?', a: 'Sous 14 jours à compter de la réception du produit retourné, sur le moyen de paiement utilisé lors de l\'achat.' },
+    ],
+  },
+  {
+    cat: 'Boutique physique',
+    items: [
+      { q: 'Où se trouve la boutique ?', a: '4 place de la Chapelle, 75018 Paris. Métro La Chapelle (ligne 2) ou Marx Dormoy (ligne 12).' },
+      { q: 'Puis-je retirer ma commande en boutique ?', a: 'Le retrait en boutique n\'est pas encore disponible en ligne. Contactez-nous si vous souhaitez réserver des produits à venir chercher.' },
+    ],
+  },
+];
+---
+
+<Layout title="FAQ — Nayab Market" description="Questions fréquentes sur les commandes, paiements, livraisons et produits Nayab Market.">
+  <section class="py-12 px-4 sm:px-6 bg-gradient-to-br from-lapis-900 via-lapis-800 to-pomegranate-900 text-sand-50 relative overflow-hidden">
+    <div class="absolute inset-0 bg-kilim-pattern opacity-50"></div>
+    <div class="relative z-10 max-w-4xl mx-auto text-center">
+      <h1 class="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-saffron-300 mb-2">Questions fréquentes</h1>
+      <p class="font-accent text-lg text-sand-100 italic">Tout ce qu'il faut savoir avant de commander</p>
+    </div>
+  </section>
+
+  <section class="py-12 px-4 sm:px-6 bg-sand-50">
+    <div class="max-w-3xl mx-auto space-y-10">
+      {
+        faqs.map((section) => (
+          <div>
+            <h2 class="font-display text-2xl font-bold text-lapis-900 mb-5 pb-2 border-b-2 border-saffron-400">{section.cat}</h2>
+            <div class="space-y-3">
+              {section.items.map((item) => (
+                <details class="group bg-white rounded-xl border-2 border-saffron-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
+                  <summary class="cursor-pointer list-none p-4 sm:p-5 flex items-start justify-between gap-3 font-semibold text-lapis-900 hover:bg-sand-50 transition">
+                    <span>{item.q}</span>
+                    <span class="text-saffron-500 text-xl flex-shrink-0 group-open:rotate-45 transition-transform">+</span>
+                  </summary>
+                  <div class="px-4 sm:px-5 pb-5 text-lapis-700 leading-relaxed border-t border-sand-200 pt-3">
+                    {item.a}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
+        ))
+      }
+
+      <div class="bg-white rounded-2xl border-2 border-saffron-200 p-6 sm:p-8 text-center shadow-lg">
+        <h2 class="font-display text-2xl text-lapis-900 mb-3">Vous n'avez pas trouvé votre réponse ?</h2>
+        <p class="text-lapis-700 mb-5">Notre équipe est à votre disposition pour toute question.</p>
+        <a href="/contact" class="inline-block px-6 py-3 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition">
+          Nous contacter →
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

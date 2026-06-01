@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+Disallow: /commande/
+Disallow: /succes
+
+Sitemap: https://nayabmarket.fr/sitemap-index.xml

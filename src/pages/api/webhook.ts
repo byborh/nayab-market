@@ -71,6 +71,32 @@ function buildOrderFromSession(session: Stripe.Checkout.Session, lineItems: Stri
   };
 }
 
+/**
+ * Décrémente le stock de chaque produit en transaction.
+ * Les produits sans productId (paniers anciens ou import manuel) sont ignorés.
+ * Le stock ne descend jamais en dessous de 0.
+ */
+async function decrementStock(items: OrderItem[]) {
+  const db = getAdminFirestore();
+  if (!db) return;
+
+  for (const item of items) {
+    if (!item.productId) continue;
+    const ref = db.collection('products').doc(item.productId);
+    try {
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) return;
+        const current = (snap.data()?.stock as number | undefined) ?? 0;
+        const next = Math.max(0, current - item.qty);
+        tx.update(ref, { stock: next, updatedAt: FieldValue.serverTimestamp() });
+      });
+    } catch (err) {
+      console.error(`[webhook] échec décrément stock ${item.productId}:`, err);
+    }
+  }
+}
+
 export const POST: APIRoute = async ({ request }) => {
   const secret = import.meta.env.STRIPE_SECRET_KEY;
   const whSecret = import.meta.env.STRIPE_WEBHOOK_SECRET;
@@ -98,10 +124,25 @@ export const POST: APIRoute = async ({ request }) => {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
 
-      // On ignore les sessions non payées (cas rare des paiements asynchrones non finalisés)
       if (session.payment_status !== 'paid') {
         console.log('[webhook] session.completed mais payment_status =', session.payment_status);
         break;
+      }
+
+      const db = getAdminFirestore();
+
+      // === IDEMPOTENCY ===
+      // Si Stripe retente le webhook (timeout, échec réseau), on évite
+      // de traiter la commande deux fois (double email, double décrément stock).
+      if (db) {
+        const existing = await db.collection('orders').doc(session.id).get();
+        if (existing.exists && (existing.data()?.paidAt)) {
+          console.log(`[webhook] commande ${session.id} déjà traitée, skip`);
+          return new Response(JSON.stringify({ received: true, duplicate: true }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
       }
 
       // Récupérer les line items complets (l'event ne les inclut pas par défaut)
@@ -118,8 +159,6 @@ export const POST: APIRoute = async ({ request }) => {
 
       const order = buildOrderFromSession(session, lineItems);
 
-      // Persister en Firestore via Admin SDK
-      const db = getAdminFirestore();
       if (db) {
         try {
           await db
@@ -133,14 +172,15 @@ export const POST: APIRoute = async ({ request }) => {
             }, { merge: false });
         } catch (err) {
           console.error('[webhook] échec écriture Firestore:', err);
-          // On ne renvoie pas 500 ici : on a quand même envoyé les emails ci-dessous,
-          // et un 500 ferait re-tenter Stripe en boucle.
         }
+
+        // Décrément du stock (best-effort, ne bloque pas la confirmation)
+        await decrementStock(order.items);
       } else {
         console.warn('[webhook] Firebase Admin non configuré — commande non persistée');
       }
 
-      // Envoi des emails (best-effort, non bloquant en cas d'échec)
+      // Envoi des emails (best-effort)
       await Promise.all([
         order.customer.email ? sendOrderConfirmation(order) : Promise.resolve(),
         sendAdminNewOrderAlert(order),
@@ -155,7 +195,6 @@ export const POST: APIRoute = async ({ request }) => {
       break;
 
     default:
-      // On accuse réception des autres événements pour éviter les re-tentatives Stripe
       break;
   }
 

@@ -63,7 +63,7 @@ const steps: Array<{ status: OrderStatus; label: string; done: boolean; date: nu
 const shortRef = order ? order.id.slice(-12).toUpperCase() : '';
 ---
 
-<Layout title={order ? `Commande #${shortRef} — Nayab Market` : 'Commande — Nayab Market'}>
+<Layout title={order ? `Commande #${shortRef} — Nayab Market` : 'Commande — Nayab Market'} noindex={true}>
   <section class="py-12 px-4 sm:px-6 bg-gradient-to-br from-lapis-900 via-lapis-800 to-pomegranate-900 text-sand-50 relative overflow-hidden">
     <div class="absolute inset-0 bg-kilim-pattern opacity-50"></div>
     <div class="relative z-10 max-w-3xl mx-auto text-center">

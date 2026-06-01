@@ -1,0 +1,30 @@
+---
+---
+
+<div
+  id="cookie-banner"
+  class="hidden fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 sm:max-w-md z-50 bg-lapis-900 text-sand-50 rounded-2xl shadow-2xl border border-saffron-400/30 p-5"
+>
+  <p class="text-sm leading-relaxed mb-3">
+    🍪 Ce site utilise uniquement des cookies <strong class="text-saffron-300">strictement nécessaires</strong> à son fonctionnement (panier, paiement). Aucun pistage ni publicité.
+    <a href="/confidentialite#cookies" class="underline text-saffron-300 hover:text-saffron-200">En savoir plus</a>
+  </p>
+  <button
+    id="cookie-accept"
+    class="w-full px-4 py-2 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold text-sm hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition-all"
+  >
+    J'ai compris
+  </button>
+</div>
+
+<script>
+  const KEY = 'nayab-cookies-ack';
+  const banner = document.getElementById('cookie-banner');
+  if (banner && !localStorage.getItem(KEY)) {
+    setTimeout(() => banner.classList.remove('hidden'), 800);
+  }
+  document.getElementById('cookie-accept')?.addEventListener('click', () => {
+    localStorage.setItem(KEY, '1');
+    banner?.classList.add('hidden');
+  });
+</script>

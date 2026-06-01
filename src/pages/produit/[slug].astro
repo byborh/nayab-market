@@ -59,21 +59,30 @@ const related = allProducts.filter((p) => p.category === product.category && p.i
 
           <div class="flex items-center gap-4 mb-6">
             <div class="flex items-center border-2 border-saffron-300 rounded-full overflow-hidden">
-              <button id="qty-minus" class="w-10 h-12 text-lapis-900 hover:bg-saffron-100 font-bold text-xl transition" aria-label="Diminuer">−</button>
+              <button id="qty-minus" class="w-10 h-12 text-lapis-900 hover:bg-saffron-100 font-bold text-xl transition disabled:opacity-50 disabled:cursor-not-allowed" disabled={product.stock <= 0} aria-label="Diminuer">−</button>
               <span id="qty-display" class="w-12 text-center font-semibold">1</span>
-              <button id="qty-plus" class="w-10 h-12 text-lapis-900 hover:bg-saffron-100 font-bold text-xl transition" aria-label="Augmenter">+</button>
+              <button id="qty-plus" class="w-10 h-12 text-lapis-900 hover:bg-saffron-100 font-bold text-xl transition disabled:opacity-50 disabled:cursor-not-allowed" disabled={product.stock <= 0} aria-label="Augmenter">+</button>
             </div>
-            <button
-              id="add-to-cart"
-              class="flex-1 px-6 py-3.5 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition-all"
-              data-id={product.id}
-              data-name={product.name}
-              data-price={product.priceCents}
-              data-image={product.image}
-              data-unit={product.unit}
-            >
-              Ajouter au panier
-            </button>
+            {product.stock > 0 ? (
+              <button
+                id="add-to-cart"
+                class="flex-1 px-6 py-3.5 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition-all"
+                data-id={product.id}
+                data-name={product.name}
+                data-price={product.priceCents}
+                data-image={product.image}
+                data-unit={product.unit}
+              >
+                Ajouter au panier
+              </button>
+            ) : (
+              <button
+                disabled
+                class="flex-1 px-6 py-3.5 bg-sand-200 text-lapis-500 rounded-full font-semibold cursor-not-allowed"
+              >
+                Indisponible
+              </button>
+            )}
           </div>
 
           <a

@@ -1,16 +1,24 @@
 ---
 import Header from '~/components/Header.astro';
 import Footer from '~/components/Footer.astro';
+import CookieBanner from '~/components/CookieBanner.astro';
 
 export interface Props {
   title?: string;
   description?: string;
+  image?: string;
+  noindex?: boolean;
 }
 
 const {
   title = 'Nayab Market — Épicerie afghane à Paris',
   description = 'Nayab Market, votre épicerie afghane à Paris. Fruits secs, épices, thés et produits afghans authentiques. 4 place de la Chapelle, Paris.',
+  image = '/og-image.svg',
+  noindex = false,
 } = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).toString();
+const imageURL = new URL(image, Astro.site ?? Astro.url.origin).toString();
 ---
 
 <!doctype html>
@@ -19,7 +27,26 @@ const {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    <link rel="canonical" href={canonicalURL} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={imageURL} />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:site_name" content="Nayab Market" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonicalURL} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={imageURL} />
+
     <link
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Poppins:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;600;700&display=swap"
       rel="stylesheet"
@@ -32,6 +59,7 @@ const {
       <slot />
     </main>
     <Footer />
+    <CookieBanner />
 
     <script>
       // Smooth scroll for in-page anchors

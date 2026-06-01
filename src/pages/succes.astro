@@ -90,7 +90,7 @@ function fmt(cents: number, currency = 'EUR'): string {
 }
 ---
 
-<Layout title={receipt ? `Commande ${receipt.shortRef} — Nayab Market` : 'Commande confirmée — Nayab Market'}>
+<Layout title={receipt ? `Commande ${receipt.shortRef} — Nayab Market` : 'Commande confirmée — Nayab Market'} noindex={true}>
   <section class="py-16 px-4 sm:px-6 bg-gradient-to-br from-sand-50 to-sand-100 min-h-[70vh]">
     <div class="max-w-3xl mx-auto">
       <div class="text-center mb-10">
