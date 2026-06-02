@@ -50,6 +50,8 @@ export type OrderAddress = {
 export type Order = {
   id: string;
   status: OrderStatus;
+  /** UID de l'utilisateur si commande passée en étant connecté, sinon null. */
+  userId?: string | null;
   customer: {
     email: string;
     name?: string;

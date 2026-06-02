@@ -1,0 +1,239 @@
+---
+import Layout from '~/layouts/Layout.astro';
+
+export const prerender = false;
+---
+
+<Layout title="Connexion — Nayab Market" description="Connectez-vous à votre compte Nayab Market pour voir vos commandes et vos adresses." noindex={true}>
+  <section class="py-12 px-4 sm:px-6 bg-gradient-to-br from-lapis-900 via-lapis-800 to-pomegranate-900 text-sand-50 relative overflow-hidden">
+    <div class="absolute inset-0 bg-kilim-pattern opacity-50"></div>
+    <div class="relative z-10 max-w-3xl mx-auto text-center">
+      <h1 id="page-title" class="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-saffron-300 mb-2">Connexion</h1>
+      <p id="page-subtitle" class="font-accent text-lg text-sand-100 italic">Retrouvez vos commandes et vos adresses</p>
+    </div>
+  </section>
+
+  <section class="py-12 px-4 sm:px-6 bg-sand-50 min-h-[60vh]">
+    <div class="max-w-md mx-auto">
+      <div id="not-configured" class="hidden bg-white border-2 border-saffron-300 rounded-2xl p-6 shadow-lg">
+        <h2 class="font-display text-xl text-lapis-900 mb-2">⚙️ Service non configuré</h2>
+        <p class="text-lapis-700 text-sm">La connexion nécessite Firebase Authentication. Configure les variables <code class="bg-sand-100 px-1.5 rounded">PUBLIC_FIREBASE_*</code> dans <code class="bg-sand-100 px-1.5 rounded">.env</code>.</p>
+      </div>
+
+      <div id="auth-card" class="hidden bg-white border-2 border-saffron-200 rounded-2xl p-6 sm:p-8 shadow-lg">
+        <!-- LOGIN -->
+        <form id="login-form" class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-lapis-900 mb-1" for="login-email">Email</label>
+            <input type="email" id="login-email" required autocomplete="email" class="w-full px-4 py-2.5 border border-sand-300 rounded-lg bg-sand-50 focus:outline-none focus:border-saffron-400 focus:bg-white" />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-lapis-900 mb-1" for="login-password">Mot de passe</label>
+            <input type="password" id="login-password" required autocomplete="current-password" minlength="6" class="w-full px-4 py-2.5 border border-sand-300 rounded-lg bg-sand-50 focus:outline-none focus:border-saffron-400 focus:bg-white" />
+          </div>
+          <p id="login-msg" class="text-sm min-h-[1.25rem]"></p>
+          <button type="submit" class="w-full px-6 py-3 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition disabled:opacity-60">Se connecter</button>
+          <div class="flex justify-between text-sm pt-2">
+            <a href="#" data-mode="reset" class="text-pomegranate-700 hover:underline">Mot de passe oublié ?</a>
+            <a href="#" data-mode="signup" class="text-pomegranate-700 hover:underline">Créer un compte →</a>
+          </div>
+        </form>
+
+        <!-- SIGNUP -->
+        <form id="signup-form" class="space-y-4 hidden">
+          <div>
+            <label class="block text-sm font-semibold text-lapis-900 mb-1" for="signup-name">Nom complet</label>
+            <input type="text" id="signup-name" required maxlength="100" autocomplete="name" class="w-full px-4 py-2.5 border border-sand-300 rounded-lg bg-sand-50 focus:outline-none focus:border-saffron-400 focus:bg-white" />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-lapis-900 mb-1" for="signup-email">Email</label>
+            <input type="email" id="signup-email" required autocomplete="email" class="w-full px-4 py-2.5 border border-sand-300 rounded-lg bg-sand-50 focus:outline-none focus:border-saffron-400 focus:bg-white" />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-lapis-900 mb-1" for="signup-password">Mot de passe (6 caractères min.)</label>
+            <input type="password" id="signup-password" required minlength="6" autocomplete="new-password" class="w-full px-4 py-2.5 border border-sand-300 rounded-lg bg-sand-50 focus:outline-none focus:border-saffron-400 focus:bg-white" />
+          </div>
+          <p id="signup-msg" class="text-sm min-h-[1.25rem]"></p>
+          <button type="submit" class="w-full px-6 py-3 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition disabled:opacity-60">Créer mon compte</button>
+          <p class="text-xs text-lapis-500 text-center">En créant un compte, vous acceptez nos <a href="/cgv" class="underline">CGV</a> et notre <a href="/confidentialite" class="underline">politique de confidentialité</a>.</p>
+          <div class="text-center text-sm pt-2">
+            <a href="#" data-mode="login" class="text-pomegranate-700 hover:underline">← J'ai déjà un compte</a>
+          </div>
+        </form>
+
+        <!-- RESET -->
+        <form id="reset-form" class="space-y-4 hidden">
+          <p class="text-sm text-lapis-700">Renseigne ton email, on t'envoie un lien pour réinitialiser ton mot de passe.</p>
+          <div>
+            <label class="block text-sm font-semibold text-lapis-900 mb-1" for="reset-email">Email</label>
+            <input type="email" id="reset-email" required autocomplete="email" class="w-full px-4 py-2.5 border border-sand-300 rounded-lg bg-sand-50 focus:outline-none focus:border-saffron-400 focus:bg-white" />
+          </div>
+          <p id="reset-msg" class="text-sm min-h-[1.25rem]"></p>
+          <button type="submit" class="w-full px-6 py-3 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition disabled:opacity-60">Envoyer le lien</button>
+          <div class="text-center text-sm pt-2">
+            <a href="#" data-mode="login" class="text-pomegranate-700 hover:underline">← Retour à la connexion</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  import { initializeApp, type FirebaseApp } from 'firebase/app';
+  import {
+    getAuth,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    sendPasswordResetEmail,
+    updateProfile,
+    onAuthStateChanged,
+    type Auth,
+  } from 'firebase/auth';
+  import { getFirestore, doc, setDoc, serverTimestamp, type Firestore } from 'firebase/firestore';
+
+  const config = {
+    apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY,
+    authDomain: import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.PUBLIC_FIREBASE_APP_ID,
+  };
+
+  const notConfigured = document.getElementById('not-configured')!;
+  const authCard = document.getElementById('auth-card')!;
+  const loginForm = document.getElementById('login-form') as HTMLFormElement;
+  const signupForm = document.getElementById('signup-form') as HTMLFormElement;
+  const resetForm = document.getElementById('reset-form') as HTMLFormElement;
+  const pageTitle = document.getElementById('page-title')!;
+  const pageSubtitle = document.getElementById('page-subtitle')!;
+
+  const titles = {
+    login: { t: 'Connexion', s: 'Retrouvez vos commandes et vos adresses' },
+    signup: { t: 'Créer un compte', s: 'Pour suivre vos commandes et gagner du temps au paiement' },
+    reset: { t: 'Mot de passe oublié', s: 'On vous envoie un lien par email' },
+  };
+
+  function setMode(mode: 'login' | 'signup' | 'reset') {
+    loginForm.classList.toggle('hidden', mode !== 'login');
+    signupForm.classList.toggle('hidden', mode !== 'signup');
+    resetForm.classList.toggle('hidden', mode !== 'reset');
+    pageTitle.textContent = titles[mode].t;
+    pageSubtitle.textContent = titles[mode].s;
+    history.replaceState(null, '', `?mode=${mode}`);
+  }
+
+  document.querySelectorAll<HTMLAnchorElement>('a[data-mode]').forEach((a) => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      setMode(a.dataset.mode as 'login' | 'signup' | 'reset');
+    });
+  });
+
+  const isConfigured = Boolean(config.apiKey && config.projectId);
+  let auth: Auth | null = null;
+  let db: Firestore | null = null;
+
+  if (!isConfigured) {
+    notConfigured.classList.remove('hidden');
+  } else {
+    const app: FirebaseApp = initializeApp(config);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    authCard.classList.remove('hidden');
+
+    // Mode initial depuis ?mode=
+    const initial = new URLSearchParams(location.search).get('mode');
+    if (initial === 'signup' || initial === 'reset') setMode(initial);
+
+    // Redirection si déjà connecté
+    const redirect = new URLSearchParams(location.search).get('next') || '/compte';
+    onAuthStateChanged(auth, (user) => {
+      if (user) window.location.href = redirect;
+    });
+  }
+
+  function setMsg(el: HTMLElement, text: string, ok = false) {
+    el.textContent = text;
+    el.className = 'text-sm min-h-[1.25rem] ' + (ok ? 'text-green-700' : 'text-pomegranate-700');
+  }
+
+  function authErrorMessage(code: string): string {
+    const map: Record<string, string> = {
+      'auth/invalid-email': 'Email invalide.',
+      'auth/user-not-found': 'Aucun compte associé à cet email.',
+      'auth/wrong-password': 'Mot de passe incorrect.',
+      'auth/invalid-credential': 'Email ou mot de passe incorrect.',
+      'auth/email-already-in-use': 'Un compte existe déjà avec cet email.',
+      'auth/weak-password': 'Mot de passe trop faible (6 caractères minimum).',
+      'auth/too-many-requests': 'Trop de tentatives. Réessaie dans quelques minutes.',
+      'auth/network-request-failed': 'Problème de réseau.',
+    };
+    return map[code] || 'Erreur : ' + code;
+  }
+
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('login-msg')!;
+    setMsg(msg, '');
+    const btn = loginForm.querySelector('button[type=submit]') as HTMLButtonElement;
+    btn.disabled = true;
+    try {
+      await signInWithEmailAndPassword(
+        auth!,
+        (document.getElementById('login-email') as HTMLInputElement).value,
+        (document.getElementById('login-password') as HTMLInputElement).value,
+      );
+    } catch (err) {
+      setMsg(msg, authErrorMessage((err as { code: string }).code));
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('signup-msg')!;
+    setMsg(msg, '');
+    const btn = signupForm.querySelector('button[type=submit]') as HTMLButtonElement;
+    btn.disabled = true;
+    try {
+      const name = (document.getElementById('signup-name') as HTMLInputElement).value.trim();
+      const email = (document.getElementById('signup-email') as HTMLInputElement).value;
+      const password = (document.getElementById('signup-password') as HTMLInputElement).value;
+      const cred = await createUserWithEmailAndPassword(auth!, email, password);
+      if (name) await updateProfile(cred.user, { displayName: name });
+      // Profil utilisateur dans Firestore
+      await setDoc(doc(db!, 'users', cred.user.uid), {
+        email,
+        name,
+        addresses: [],
+        createdAt: serverTimestamp(),
+      });
+    } catch (err) {
+      setMsg(msg, authErrorMessage((err as { code: string }).code));
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  resetForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('reset-msg')!;
+    setMsg(msg, '');
+    const btn = resetForm.querySelector('button[type=submit]') as HTMLButtonElement;
+    btn.disabled = true;
+    try {
+      await sendPasswordResetEmail(
+        auth!,
+        (document.getElementById('reset-email') as HTMLInputElement).value,
+      );
+      setMsg(msg, '✓ Si un compte existe avec cet email, le lien vient d\'être envoyé.', true);
+    } catch (err) {
+      setMsg(msg, authErrorMessage((err as { code: string }).code));
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>

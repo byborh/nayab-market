@@ -103,17 +103,37 @@ Firestore → onglet **Règles** → remplacer par :
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Catalogue : lecture publique, écriture pour utilisateurs authentifiés
-    match /products/{productId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+    // Helper : l'utilisateur courant est-il admin ?
+    function isAdmin() {
+      return request.auth != null &&
+             exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
-    // Commandes :
-    //  - écriture serveur uniquement (Firebase Admin SDK contourne ces règles)
-    //  - lecture par l'admin connecté (admin panel)
-    //  - lecture publique BLOQUÉE — la page /commande/[id] passe par le serveur
+
+    // Catalogue produits
+    match /products/{productId} {
+      allow read: if true;          // tout le monde voit le catalogue
+      allow write: if isAdmin();    // seuls les admins éditent
+    }
+
+    // Liste des admins (référence)
+    match /admins/{uid} {
+      // Un utilisateur peut vérifier s'il est admin (pour afficher l'UI)
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;        // ajout/suppression manuel via console Firebase
+    }
+
+    // Profils clients (un par UID)
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Commandes
     match /orders/{orderId} {
-      allow read: if request.auth != null;
+      // Le client peut lire ses propres commandes ; l'admin lit toutes
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      // Écriture exclusivement serveur (Admin SDK contourne les règles)
       allow write: if false;
     }
   }
@@ -121,6 +141,20 @@ service cloud.firestore {
 ```
 
 Cliquer **Publier**.
+
+### 5. Bootstrap — devenir admin
+
+Après avoir créé ton compte (étape 2) ou ton compte client via `/connexion`, tu dois manuellement t'ajouter à la collection `admins` pour accéder à `/admin` :
+
+1. Console Firebase → **Authentication** → onglet **Users** → clique sur ton compte → copie le **User UID** (chaîne longue type `pX8q...`)
+2. Console Firebase → **Firestore Database** → **+ Démarrer une collection** → ID : `admins`
+3. Première entrée :
+   - **Document ID** : colle ton UID
+   - Pas besoin de champs (la simple existence du doc suffit)
+   - Cliquer **Enregistrer**
+4. Recharge `/admin` dans ton navigateur → tu vois maintenant l'interface admin.
+
+Pour ajouter un autre admin plus tard : récupère son UID dans Authentication, crée un doc `admins/{uid}` vide dans Firestore.
 
 ### 5. Premier import
 

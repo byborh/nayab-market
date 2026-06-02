@@ -32,7 +32,7 @@ if (sessionId) {
     try {
       const stripe = new Stripe(secret, { apiVersion: '2024-12-18.acacia' });
       const session = await stripe.checkout.sessions.retrieve(sessionId, {
-        expand: ['line_items', 'customer_details', 'shipping_details', 'shipping_cost.shipping_rate'],
+        expand: ['line_items', 'shipping_cost.shipping_rate'],
       });
 
       if (session.payment_status === 'paid') {

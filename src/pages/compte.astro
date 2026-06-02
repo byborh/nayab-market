@@ -1,0 +1,416 @@
+---
+import Layout from '~/layouts/Layout.astro';
+import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from '~/lib/orders';
+
+export const prerender = false;
+---
+
+<Layout title="Mon compte — Nayab Market" description="Votre espace client Nayab Market : commandes, adresses, profil." noindex={true}>
+  <section class="py-10 px-4 sm:px-6 bg-gradient-to-br from-lapis-900 via-lapis-800 to-pomegranate-900 text-sand-50 relative overflow-hidden">
+    <div class="absolute inset-0 bg-kilim-pattern opacity-50"></div>
+    <div class="relative z-10 max-w-5xl mx-auto text-center">
+      <h1 class="font-display text-3xl sm:text-4xl font-bold text-saffron-300 mb-1">Mon compte</h1>
+      <p id="welcome" class="font-accent text-base text-sand-100 italic">Bienvenue</p>
+    </div>
+  </section>
+
+  <section class="py-10 px-4 sm:px-6 bg-sand-50 min-h-[60vh]">
+    <div class="max-w-5xl mx-auto">
+      <div id="not-logged-in" class="hidden max-w-md mx-auto text-center bg-white border-2 border-saffron-200 rounded-2xl p-8 shadow-lg">
+        <p class="text-lapis-700 mb-4">Vous devez être connecté pour accéder à cette page.</p>
+        <a href="/connexion?next=/compte" class="inline-block px-6 py-3 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition">Se connecter →</a>
+      </div>
+
+      <div id="account-content" class="hidden grid lg:grid-cols-[260px,1fr] gap-6">
+        <!-- Sidebar -->
+        <aside class="space-y-2">
+          <button data-tab="profil" class="tab-btn w-full text-left px-4 py-3 rounded-xl font-semibold text-lapis-900 bg-white border-2 border-saffron-200 hover:border-saffron-400 transition">👤 Profil</button>
+          <button data-tab="commandes" class="tab-btn w-full text-left px-4 py-3 rounded-xl font-semibold text-lapis-900 bg-white border-2 border-saffron-200 hover:border-saffron-400 transition">📦 Mes commandes</button>
+          <button data-tab="adresses" class="tab-btn w-full text-left px-4 py-3 rounded-xl font-semibold text-lapis-900 bg-white border-2 border-saffron-200 hover:border-saffron-400 transition">🏠 Adresses</button>
+          <button id="logout-btn" class="w-full text-left px-4 py-3 rounded-xl font-semibold text-pomegranate-700 bg-white border-2 border-pomegranate-200 hover:bg-pomegranate-700 hover:text-white transition">↩ Déconnexion</button>
+        </aside>
+
+        <!-- Main -->
+        <main class="space-y-6">
+          <!-- PROFIL -->
+          <div id="tab-profil" class="tab-pane">
+            <div class="bg-white rounded-2xl border-2 border-saffron-200 shadow-lg p-6 sm:p-8">
+              <h2 class="font-display text-xl text-lapis-900 mb-5">Profil</h2>
+              <form id="profile-form" class="space-y-4">
+                <div>
+                  <label class="block text-sm font-semibold text-lapis-900 mb-1">Email</label>
+                  <input id="p-email" type="email" disabled class="w-full px-4 py-2.5 border border-sand-300 rounded-lg bg-sand-100 text-lapis-600" />
+                  <p class="text-xs text-lapis-500 mt-1">L'email ne peut pas être modifié ici.</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-lapis-900 mb-1" for="p-name">Nom complet</label>
+                  <input id="p-name" type="text" maxlength="100" class="w-full px-4 py-2.5 border border-sand-300 rounded-lg bg-sand-50 focus:outline-none focus:border-saffron-400 focus:bg-white" />
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-lapis-900 mb-1" for="p-phone">Téléphone</label>
+                  <input id="p-phone" type="tel" maxlength="30" class="w-full px-4 py-2.5 border border-sand-300 rounded-lg bg-sand-50 focus:outline-none focus:border-saffron-400 focus:bg-white" />
+                </div>
+                <p id="profile-msg" class="text-sm min-h-[1.25rem]"></p>
+                <div class="flex justify-end">
+                  <button type="submit" class="px-5 py-2 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold text-sm hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition">Enregistrer</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- COMMANDES -->
+          <div id="tab-commandes" class="tab-pane hidden">
+            <div class="bg-white rounded-2xl border-2 border-saffron-200 shadow-lg p-6 sm:p-8">
+              <h2 class="font-display text-xl text-lapis-900 mb-5">Mes commandes</h2>
+              <div id="orders-list" class="space-y-4">
+                <p class="text-lapis-600 italic text-center py-8">Chargement…</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ADRESSES -->
+          <div id="tab-adresses" class="tab-pane hidden">
+            <div class="bg-white rounded-2xl border-2 border-saffron-200 shadow-lg p-6 sm:p-8">
+              <div class="flex items-center justify-between mb-5">
+                <h2 class="font-display text-xl text-lapis-900">Mes adresses</h2>
+                <button id="add-address-btn" class="px-4 py-2 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold text-sm hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition">+ Ajouter</button>
+              </div>
+              <p class="text-xs text-lapis-500 mb-4">Ces adresses sont enregistrées pour ton confort. L'adresse de livraison définitive est confirmée à chaque commande lors du paiement.</p>
+              <div id="addresses-list" class="space-y-3"></div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal adresse -->
+  <div id="address-modal" class="hidden fixed inset-0 z-[2000] bg-lapis-900/75 backdrop-blur-sm items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md border-t-4 border-saffron-500 relative">
+      <button id="close-address-modal" class="absolute top-3 right-4 text-3xl text-lapis-500 hover:text-pomegranate-700 leading-none">×</button>
+      <h3 id="address-modal-title" class="font-display text-xl text-lapis-900 mb-4">Ajouter une adresse</h3>
+      <form id="address-form" class="space-y-3">
+        <div><label class="block text-sm font-semibold text-lapis-900 mb-1">Libellé (ex: Domicile)</label><input id="a-label" type="text" maxlength="40" class="w-full px-3 py-2 border border-sand-300 rounded-lg bg-sand-50" /></div>
+        <div><label class="block text-sm font-semibold text-lapis-900 mb-1">Nom complet *</label><input id="a-name" type="text" required maxlength="100" class="w-full px-3 py-2 border border-sand-300 rounded-lg bg-sand-50" /></div>
+        <div><label class="block text-sm font-semibold text-lapis-900 mb-1">Adresse ligne 1 *</label><input id="a-line1" type="text" required maxlength="100" class="w-full px-3 py-2 border border-sand-300 rounded-lg bg-sand-50" /></div>
+        <div><label class="block text-sm font-semibold text-lapis-900 mb-1">Adresse ligne 2</label><input id="a-line2" type="text" maxlength="100" class="w-full px-3 py-2 border border-sand-300 rounded-lg bg-sand-50" /></div>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="col-span-1"><label class="block text-sm font-semibold text-lapis-900 mb-1">CP *</label><input id="a-postal" type="text" required maxlength="10" class="w-full px-3 py-2 border border-sand-300 rounded-lg bg-sand-50" /></div>
+          <div class="col-span-2"><label class="block text-sm font-semibold text-lapis-900 mb-1">Ville *</label><input id="a-city" type="text" required maxlength="80" class="w-full px-3 py-2 border border-sand-300 rounded-lg bg-sand-50" /></div>
+        </div>
+        <div><label class="block text-sm font-semibold text-lapis-900 mb-1">Pays *</label><input id="a-country" type="text" required maxlength="40" value="France" class="w-full px-3 py-2 border border-sand-300 rounded-lg bg-sand-50" /></div>
+        <p id="address-msg" class="text-sm text-pomegranate-700 min-h-[1.25rem]"></p>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" id="cancel-address" class="px-4 py-2 border border-sand-400 text-lapis-900 rounded-full font-semibold text-sm hover:bg-sand-100 transition">Annuler</button>
+          <button type="submit" class="px-4 py-2 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold text-sm hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { initializeApp, type FirebaseApp } from 'firebase/app';
+  import { getAuth, signOut, onAuthStateChanged, updateProfile, type Auth, type User } from 'firebase/auth';
+  import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc,
+    updateDoc,
+    collection,
+    query,
+    where,
+    orderBy,
+    onSnapshot,
+    serverTimestamp,
+    type Firestore,
+  } from 'firebase/firestore';
+  import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, type Order } from '~/lib/orders';
+
+  const config = {
+    apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY,
+    authDomain: import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.PUBLIC_FIREBASE_APP_ID,
+  };
+
+  type Address = {
+    id: string;
+    label?: string;
+    name: string;
+    line1: string;
+    line2?: string;
+    postalCode: string;
+    city: string;
+    country: string;
+  };
+
+  const isConfigured = Boolean(config.apiKey && config.projectId);
+  if (!isConfigured) {
+    window.location.href = '/connexion';
+  }
+
+  const app: FirebaseApp = initializeApp(config);
+  const auth: Auth = getAuth(app);
+  const db: Firestore = getFirestore(app);
+
+  const notLoggedIn = document.getElementById('not-logged-in')!;
+  const accountContent = document.getElementById('account-content')!;
+  const welcomeEl = document.getElementById('welcome')!;
+
+  let currentUser: User | null = null;
+  let addresses: Address[] = [];
+  let editingAddressId: string | null = null;
+
+  function escapeHtml(s: string) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+  }
+  function fmt(cents: number, currency = 'EUR') {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency.toUpperCase() }).format(cents / 100);
+  }
+  function formatDate(value: unknown) {
+    if (!value) return '—';
+    let date: Date;
+    if (typeof value === 'object' && value && 'toDate' in value) {
+      date = (value as { toDate: () => Date }).toDate();
+    } else if (typeof value === 'number') {
+      date = new Date(value);
+    } else {
+      return '—';
+    }
+    return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(date);
+  }
+  function shortRef(id: string) {
+    return id.slice(-12).toUpperCase();
+  }
+
+  // === Tabs ===
+  function setTab(name: string) {
+    document.querySelectorAll<HTMLElement>('.tab-pane').forEach((el) => {
+      el.classList.toggle('hidden', el.id !== `tab-${name}`);
+    });
+    document.querySelectorAll<HTMLButtonElement>('.tab-btn').forEach((b) => {
+      const active = b.dataset.tab === name;
+      b.classList.toggle('bg-lapis-900', active);
+      b.classList.toggle('text-saffron-300', active);
+      b.classList.toggle('border-lapis-900', active);
+      b.classList.toggle('text-lapis-900', !active);
+    });
+    history.replaceState(null, '', `?tab=${name}`);
+  }
+  document.querySelectorAll<HTMLButtonElement>('.tab-btn').forEach((b) => {
+    b.addEventListener('click', () => setTab(b.dataset.tab!));
+  });
+
+  const initialTab = new URLSearchParams(location.search).get('tab') || 'profil';
+  setTab(initialTab);
+
+  // === Auth state ===
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      notLoggedIn.classList.remove('hidden');
+      accountContent.classList.add('hidden');
+      return;
+    }
+    currentUser = user;
+    notLoggedIn.classList.add('hidden');
+    accountContent.classList.remove('hidden');
+    welcomeEl.textContent = `Bienvenue ${user.displayName || user.email || ''}`;
+
+    await loadProfile();
+    subscribeOrders();
+  });
+
+  document.getElementById('logout-btn')!.addEventListener('click', async () => {
+    await signOut(auth);
+    window.location.href = '/';
+  });
+
+  // === Profil ===
+  async function loadProfile() {
+    if (!currentUser) return;
+    (document.getElementById('p-email') as HTMLInputElement).value = currentUser.email || '';
+    const snap = await getDoc(doc(db, 'users', currentUser.uid));
+    if (snap.exists()) {
+      const data = snap.data();
+      (document.getElementById('p-name') as HTMLInputElement).value = data.name || currentUser.displayName || '';
+      (document.getElementById('p-phone') as HTMLInputElement).value = data.phone || '';
+      addresses = (data.addresses as Address[]) || [];
+      renderAddresses();
+    } else {
+      // Doc inexistant : créer la base
+      await setDoc(doc(db, 'users', currentUser.uid), {
+        email: currentUser.email,
+        name: currentUser.displayName || '',
+        addresses: [],
+        createdAt: serverTimestamp(),
+      });
+      (document.getElementById('p-name') as HTMLInputElement).value = currentUser.displayName || '';
+    }
+  }
+
+  document.getElementById('profile-form')!.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    const msg = document.getElementById('profile-msg')!;
+    msg.textContent = '';
+    msg.className = 'text-sm min-h-[1.25rem]';
+    try {
+      const name = (document.getElementById('p-name') as HTMLInputElement).value.trim();
+      const phone = (document.getElementById('p-phone') as HTMLInputElement).value.trim();
+      await updateDoc(doc(db, 'users', currentUser.uid), { name, phone });
+      if (name !== currentUser.displayName) {
+        await updateProfile(currentUser, { displayName: name });
+      }
+      msg.textContent = '✓ Profil mis à jour';
+      msg.className = 'text-sm min-h-[1.25rem] text-green-700';
+    } catch (err) {
+      msg.textContent = 'Erreur : ' + (err as Error).message;
+      msg.className = 'text-sm min-h-[1.25rem] text-pomegranate-700';
+    }
+  });
+
+  // === Adresses ===
+  function renderAddresses() {
+    const list = document.getElementById('addresses-list')!;
+    if (!addresses.length) {
+      list.innerHTML = '<p class="text-lapis-600 italic text-center py-4">Aucune adresse enregistrée.</p>';
+      return;
+    }
+    list.innerHTML = addresses
+      .map(
+        (a) => `
+        <div class="border-2 border-sand-200 rounded-lg p-4 flex justify-between items-start gap-3">
+          <div class="text-sm">
+            ${a.label ? `<div class="font-semibold text-pomegranate-700 mb-1">${escapeHtml(a.label)}</div>` : ''}
+            <div class="text-lapis-900">${escapeHtml(a.name)}</div>
+            <div class="text-lapis-700">${escapeHtml(a.line1)}</div>
+            ${a.line2 ? `<div class="text-lapis-700">${escapeHtml(a.line2)}</div>` : ''}
+            <div class="text-lapis-700">${escapeHtml(a.postalCode)} ${escapeHtml(a.city)}</div>
+            <div class="text-lapis-700">${escapeHtml(a.country)}</div>
+          </div>
+          <div class="flex flex-col gap-2 flex-shrink-0">
+            <button data-id="${a.id}" class="edit-addr-btn text-xs px-3 py-1 bg-lapis-900 text-saffron-300 rounded-full hover:bg-lapis-800 transition">Modifier</button>
+            <button data-id="${a.id}" class="del-addr-btn text-xs px-3 py-1 border border-pomegranate-300 text-pomegranate-700 rounded-full hover:bg-pomegranate-700 hover:text-white transition">Supprimer</button>
+          </div>
+        </div>`,
+      )
+      .join('');
+    list.querySelectorAll<HTMLButtonElement>('.edit-addr-btn').forEach((b) => {
+      b.addEventListener('click', () => openAddressModal(b.dataset.id!));
+    });
+    list.querySelectorAll<HTMLButtonElement>('.del-addr-btn').forEach((b) => {
+      b.addEventListener('click', async () => {
+        if (!confirm('Supprimer cette adresse ?')) return;
+        addresses = addresses.filter((a) => a.id !== b.dataset.id);
+        await updateDoc(doc(db, 'users', currentUser!.uid), { addresses });
+        renderAddresses();
+      });
+    });
+  }
+
+  const addressModal = document.getElementById('address-modal')!;
+  function showAddressModal(show: boolean) {
+    addressModal.classList.toggle('hidden', !show);
+    addressModal.classList.toggle('flex', show);
+  }
+  function openAddressModal(id?: string) {
+    editingAddressId = id || null;
+    const a = id ? addresses.find((x) => x.id === id) : null;
+    document.getElementById('address-modal-title')!.textContent = a ? 'Modifier l\'adresse' : 'Ajouter une adresse';
+    (document.getElementById('a-label') as HTMLInputElement).value = a?.label || '';
+    (document.getElementById('a-name') as HTMLInputElement).value = a?.name || '';
+    (document.getElementById('a-line1') as HTMLInputElement).value = a?.line1 || '';
+    (document.getElementById('a-line2') as HTMLInputElement).value = a?.line2 || '';
+    (document.getElementById('a-postal') as HTMLInputElement).value = a?.postalCode || '';
+    (document.getElementById('a-city') as HTMLInputElement).value = a?.city || '';
+    (document.getElementById('a-country') as HTMLInputElement).value = a?.country || 'France';
+    document.getElementById('address-msg')!.textContent = '';
+    showAddressModal(true);
+  }
+  document.getElementById('add-address-btn')!.addEventListener('click', () => openAddressModal());
+  document.getElementById('close-address-modal')!.addEventListener('click', () => showAddressModal(false));
+  document.getElementById('cancel-address')!.addEventListener('click', () => showAddressModal(false));
+  addressModal.addEventListener('click', (e) => {
+    if (e.target === addressModal) showAddressModal(false);
+  });
+
+  document.getElementById('address-form')!.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    const msg = document.getElementById('address-msg')!;
+    msg.textContent = '';
+    const data: Address = {
+      id: editingAddressId || crypto.randomUUID(),
+      label: (document.getElementById('a-label') as HTMLInputElement).value.trim() || undefined,
+      name: (document.getElementById('a-name') as HTMLInputElement).value.trim(),
+      line1: (document.getElementById('a-line1') as HTMLInputElement).value.trim(),
+      line2: (document.getElementById('a-line2') as HTMLInputElement).value.trim() || undefined,
+      postalCode: (document.getElementById('a-postal') as HTMLInputElement).value.trim(),
+      city: (document.getElementById('a-city') as HTMLInputElement).value.trim(),
+      country: (document.getElementById('a-country') as HTMLInputElement).value.trim(),
+    };
+    try {
+      if (editingAddressId) {
+        addresses = addresses.map((a) => (a.id === editingAddressId ? data : a));
+      } else {
+        addresses.push(data);
+      }
+      await updateDoc(doc(db, 'users', currentUser.uid), { addresses });
+      showAddressModal(false);
+      renderAddresses();
+    } catch (err) {
+      msg.textContent = 'Erreur : ' + (err as Error).message;
+    }
+  });
+
+  // === Commandes ===
+  function subscribeOrders() {
+    if (!currentUser) return;
+    const ordersList = document.getElementById('orders-list')!;
+    const q = query(
+      collection(db, 'orders'),
+      where('userId', '==', currentUser.uid),
+      orderBy('createdAt', 'desc'),
+    );
+    onSnapshot(
+      q,
+      (snap) => {
+        const orders = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Order, 'id'>) }));
+        if (!orders.length) {
+          ordersList.innerHTML = `<div class="text-center py-12">
+            <p class="text-lapis-600 italic mb-4">Aucune commande pour l'instant.</p>
+            <a href="/boutique" class="inline-block px-6 py-3 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition">Aller à la boutique →</a>
+          </div>`;
+          return;
+        }
+        ordersList.innerHTML = orders
+          .map((o) => {
+            const statusClass = ORDER_STATUS_COLORS[o.status] || 'bg-sand-100 text-lapis-700 border-sand-300';
+            const itemsCount = o.items.reduce((s, i) => s + i.qty, 0);
+            return `
+            <a href="/commande/${encodeURIComponent(o.id)}" class="block border-2 border-saffron-200 rounded-xl p-4 hover:border-saffron-400 hover:shadow-md transition">
+              <div class="grid grid-cols-1 sm:grid-cols-[1fr,auto,auto] gap-3 items-center">
+                <div>
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="font-mono text-xs text-lapis-500">#${shortRef(o.id)}</span>
+                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold border ${statusClass}">${ORDER_STATUS_LABELS[o.status]}</span>
+                  </div>
+                  <div class="text-sm text-lapis-700">${itemsCount} article${itemsCount > 1 ? 's' : ''} · ${formatDate(o.createdAt)}</div>
+                </div>
+                <div class="font-accent text-xl font-bold text-pomegranate-700 sm:text-right">${fmt(o.amounts.total, o.amounts.currency)}</div>
+                <span class="text-pomegranate-700 text-sm font-semibold sm:text-right">Détails →</span>
+              </div>
+            </a>`;
+          })
+          .join('');
+      },
+      (err) => {
+        ordersList.innerHTML = `<p class="text-pomegranate-700 italic text-center py-8">Erreur : ${escapeHtml(err.message)}</p>`;
+      },
+    );
+  }
+</script>

@@ -36,6 +36,16 @@ PUBLIC_FIREBASE_APP_ID=...</code></pre>
         </p>
       </div>
 
+      <!-- État: Connecté mais pas admin -->
+      <div id="not-admin" class="hidden max-w-md mx-auto bg-white border-2 border-pomegranate-300 rounded-2xl p-8 shadow-lg text-center">
+        <h2 class="font-display text-xl text-pomegranate-700 mb-2">Accès refusé</h2>
+        <p class="text-lapis-700 mb-4">Votre compte n'a pas les droits d'administrateur.</p>
+        <div class="flex gap-2 justify-center">
+          <a href="/compte" class="px-5 py-2 bg-lapis-900 text-saffron-300 rounded-full font-semibold text-sm hover:bg-lapis-800 transition">Mon compte</a>
+          <button id="not-admin-logout" class="px-5 py-2 border-2 border-pomegranate-600 text-pomegranate-700 rounded-full font-semibold text-sm hover:bg-pomegranate-600 hover:text-white transition">Déconnexion</button>
+        </div>
+      </div>
+
       <!-- État: Non connecté -->
       <div id="login-section" class="hidden max-w-md mx-auto">
         <div class="bg-white border-2 border-saffron-200 rounded-2xl p-8 shadow-lg">
@@ -207,6 +217,7 @@ PUBLIC_FIREBASE_APP_ID=...</code></pre>
     updateDoc,
     deleteDoc,
     doc,
+    getDoc,
     serverTimestamp,
     query,
     orderBy,
@@ -436,13 +447,35 @@ PUBLIC_FIREBASE_APP_ID=...</code></pre>
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
+        // Vérifier le rôle admin avant de montrer l'interface
+        try {
+          const adminDoc = await getDoc(doc(db!, 'admins', user.uid));
+          if (!adminDoc.exists()) {
+            loginSection.classList.add('hidden');
+            adminSection.classList.add('hidden');
+            const notAdmin = document.getElementById('not-admin');
+            if (notAdmin) notAdmin.classList.remove('hidden');
+            return;
+          }
+        } catch {
+          // En cas d'erreur de lecture, on bloque par sécurité
+          loginSection.classList.add('hidden');
+          adminSection.classList.add('hidden');
+          const notAdmin = document.getElementById('not-admin');
+          if (notAdmin) notAdmin.classList.remove('hidden');
+          return;
+        }
         document.getElementById('user-email')!.textContent = user.email || '(sans email)';
         loginSection.classList.add('hidden');
         adminSection.classList.remove('hidden');
+        const notAdmin = document.getElementById('not-admin');
+        if (notAdmin) notAdmin.classList.add('hidden');
         subscribeProducts();
       } else {
         loginSection.classList.remove('hidden');
         adminSection.classList.add('hidden');
+        const notAdmin = document.getElementById('not-admin');
+        if (notAdmin) notAdmin.classList.add('hidden');
         products = [];
       }
     });
@@ -461,6 +494,7 @@ PUBLIC_FIREBASE_APP_ID=...</code></pre>
     });
 
     document.getElementById('logout-btn')!.addEventListener('click', () => signOut(auth!));
+    document.getElementById('not-admin-logout')?.addEventListener('click', () => signOut(auth!));
 
     document.getElementById('add-btn')!.addEventListener('click', () => {
       resetForm();

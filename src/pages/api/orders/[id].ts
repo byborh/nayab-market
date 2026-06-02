@@ -8,12 +8,16 @@ export const prerender = false;
 
 async function requireAdmin(request: Request): Promise<string | null> {
   const auth = getAdminAuth();
-  if (!auth) return null;
+  const db = getAdminFirestore();
+  if (!auth || !db) return null;
   const authHeader = request.headers.get('authorization') || '';
   if (!authHeader.startsWith('Bearer ')) return null;
   const idToken = authHeader.slice(7);
   try {
     const decoded = await auth.verifyIdToken(idToken);
+    // Vérifier que l'utilisateur est bien admin (présent dans la collection admins)
+    const adminDoc = await db.collection('admins').doc(decoded.uid).get();
+    if (!adminDoc.exists) return null;
     return decoded.uid;
   } catch {
     return null;

@@ -6,13 +6,14 @@ const navLinks = isHome
       { href: '#about', label: 'À Propos' },
       { href: '#categories', label: 'Catégories' },
       { href: '/boutique', label: 'Boutique' },
-      { href: '#gallery', label: 'Galerie' },
-      { href: '#location', label: 'Contact' },
+      { href: '/faq', label: 'FAQ' },
+      { href: '/contact', label: 'Contact' },
     ]
   : [
       { href: '/', label: 'Accueil' },
       { href: '/boutique', label: 'Boutique' },
-      { href: '/#location', label: 'Contact' },
+      { href: '/faq', label: 'FAQ' },
+      { href: '/contact', label: 'Contact' },
     ];
 ---
 
@@ -39,7 +40,36 @@ const navLinks = isHome
       }
     </ul>
 
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2 sm:gap-3">
+      <!-- Compte (état connecté) -->
+      <a
+        href="/compte"
+        id="account-link"
+        class="hidden items-center gap-2 text-sand-50 hover:text-saffron-300 transition px-3 py-2"
+        aria-label="Mon compte"
+      >
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span id="account-name" class="hidden sm:inline text-sm font-medium max-w-[120px] truncate">Mon compte</span>
+      </a>
+
+      <!-- Connexion (état déconnecté) -->
+      <a
+        href="/connexion"
+        id="login-link"
+        class="hidden items-center gap-2 text-sand-50 hover:text-saffron-300 transition px-3 py-2 text-sm font-medium"
+        aria-label="Connexion"
+      >
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+          <polyline points="10 17 15 12 10 7"></polyline>
+          <line x1="15" y1="12" x2="3" y2="12"></line>
+        </svg>
+        <span class="hidden sm:inline">Connexion</span>
+      </a>
+
       <a
         href="/panier"
         id="cart-link"
@@ -56,13 +86,6 @@ const navLinks = isHome
           class="absolute -top-1 -right-1 bg-pomegranate-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center opacity-0 transition-opacity"
         >0</span>
       </a>
-
-      <a
-        href="/boutique"
-        class="hidden sm:inline-flex bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 px-5 py-2 rounded-full font-semibold text-sm hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition"
-      >
-        Commander
-      </a>
     </div>
   </nav>
 </header>
@@ -70,6 +93,7 @@ const navLinks = isHome
 <div class="h-[72px]"></div>
 
 <script>
+  // === Cart badge ===
   function updateCartBadge() {
     try {
       const raw = localStorage.getItem('nayab-cart');
@@ -84,4 +108,42 @@ const navLinks = isHome
   updateCartBadge();
   window.addEventListener('storage', updateCartBadge);
   window.addEventListener('nayab-cart-updated', updateCartBadge);
+
+  // === Auth state ===
+  (async () => {
+    const apiKey = import.meta.env.PUBLIC_FIREBASE_API_KEY;
+    const projectId = import.meta.env.PUBLIC_FIREBASE_PROJECT_ID;
+    const loginLink = document.getElementById('login-link');
+    const accountLink = document.getElementById('account-link');
+    if (!apiKey || !projectId) {
+      // Pas de Firebase config : on cache les deux liens
+      return;
+    }
+    const { initializeApp, getApps } = await import('firebase/app');
+    const { getAuth, onAuthStateChanged } = await import('firebase/auth');
+    const app = getApps().length ? getApps()[0] : initializeApp({
+      apiKey,
+      authDomain: import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN,
+      projectId,
+      storageBucket: import.meta.env.PUBLIC_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: import.meta.env.PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+      appId: import.meta.env.PUBLIC_FIREBASE_APP_ID,
+    });
+    const auth = getAuth(app);
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        accountLink?.classList.add('flex');
+        accountLink?.classList.remove('hidden');
+        loginLink?.classList.add('hidden');
+        loginLink?.classList.remove('flex');
+        const nameEl = document.getElementById('account-name');
+        if (nameEl) nameEl.textContent = user.displayName || user.email || 'Mon compte';
+      } else {
+        loginLink?.classList.add('flex');
+        loginLink?.classList.remove('hidden');
+        accountLink?.classList.add('hidden');
+        accountLink?.classList.remove('flex');
+      }
+    });
+  })();
 </script>

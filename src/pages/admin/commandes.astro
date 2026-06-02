@@ -24,6 +24,15 @@ export const prerender = false;
         <p class="text-lapis-700">Renseigne les variables <code class="bg-sand-100 px-1.5 rounded">PUBLIC_FIREBASE_*</code> dans <code class="bg-sand-100 px-1.5 rounded">.env</code> puis relance le serveur.</p>
       </div>
 
+      <div id="not-admin" class="hidden max-w-md mx-auto bg-white border-2 border-pomegranate-300 rounded-2xl p-8 shadow-lg text-center">
+        <h2 class="font-display text-xl text-pomegranate-700 mb-2">Accès refusé</h2>
+        <p class="text-lapis-700 mb-4">Votre compte n'a pas les droits d'administrateur.</p>
+        <div class="flex gap-2 justify-center">
+          <a href="/compte" class="px-5 py-2 bg-lapis-900 text-saffron-300 rounded-full font-semibold text-sm hover:bg-lapis-800 transition">Mon compte</a>
+          <button id="not-admin-logout" class="px-5 py-2 border-2 border-pomegranate-600 text-pomegranate-700 rounded-full font-semibold text-sm hover:bg-pomegranate-600 hover:text-white transition">Déconnexion</button>
+        </div>
+      </div>
+
       <div id="login-section" class="hidden max-w-md mx-auto">
         <div class="bg-white border-2 border-saffron-200 rounded-2xl p-8 shadow-lg">
           <h2 class="font-display text-2xl text-lapis-900 mb-6 text-center">Connexion</h2>
@@ -99,7 +108,7 @@ export const prerender = false;
 <script>
   import { initializeApp, type FirebaseApp } from 'firebase/app';
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, type Auth, type User } from 'firebase/auth';
-  import { getFirestore, collection, onSnapshot, query, orderBy, type Firestore } from 'firebase/firestore';
+  import { getFirestore, collection, onSnapshot, query, orderBy, doc, getDoc, type Firestore } from 'firebase/firestore';
   import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, ORDER_STATUS_OPTIONS, type OrderStatus, type Order } from '~/lib/orders';
 
   const config = {
@@ -339,16 +348,33 @@ export const prerender = false;
     auth = getAuth(app);
     db = getFirestore(app);
 
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
       currentUser = user;
+      const notAdmin = document.getElementById('not-admin');
       if (user) {
+        try {
+          const adminDoc = await getDoc(doc(db!, 'admins', user.uid));
+          if (!adminDoc.exists()) {
+            loginSection.classList.add('hidden');
+            ordersSection.classList.add('hidden');
+            notAdmin?.classList.remove('hidden');
+            return;
+          }
+        } catch {
+          loginSection.classList.add('hidden');
+          ordersSection.classList.add('hidden');
+          notAdmin?.classList.remove('hidden');
+          return;
+        }
         document.getElementById('user-email')!.textContent = user.email || '(sans email)';
         loginSection.classList.add('hidden');
         ordersSection.classList.remove('hidden');
+        notAdmin?.classList.add('hidden');
         subscribeOrders();
       } else {
         loginSection.classList.remove('hidden');
         ordersSection.classList.add('hidden');
+        notAdmin?.classList.add('hidden');
         orders = [];
       }
     });
@@ -369,6 +395,7 @@ export const prerender = false;
     });
 
     document.getElementById('logout-btn')!.addEventListener('click', () => signOut(auth!));
+    document.getElementById('not-admin-logout')?.addEventListener('click', () => signOut(auth!));
   }
 
   function subscribeOrders() {

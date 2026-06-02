@@ -1,8 +1,22 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 import { getProducts } from '~/lib/products';
+import { getAdminAuth } from '~/lib/firebase-admin';
 
 export const prerender = false;
+
+async function decodeUser(request: Request): Promise<{ uid: string; email?: string } | null> {
+  const auth = getAdminAuth();
+  if (!auth) return null;
+  const header = request.headers.get('authorization') || '';
+  if (!header.startsWith('Bearer ')) return null;
+  try {
+    const decoded = await auth.verifyIdToken(header.slice(7));
+    return { uid: decoded.uid, email: decoded.email };
+  } catch {
+    return null;
+  }
+}
 
 export const POST: APIRoute = async ({ request }) => {
   const secret = import.meta.env.STRIPE_SECRET_KEY;
@@ -60,6 +74,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const siteUrl = import.meta.env.PUBLIC_SITE_URL || new URL(request.url).origin;
+  const user = await decodeUser(request);
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -84,6 +99,11 @@ export const POST: APIRoute = async ({ request }) => {
           },
         },
       ],
+      // Pré-remplir l'email Stripe si l'utilisateur est connecté
+      customer_email: user?.email,
+      // Lier la commande au compte utilisateur via metadata (récupéré côté webhook)
+      metadata: user ? { userId: user.uid } : undefined,
+      payment_intent_data: user ? { metadata: { userId: user.uid } } : undefined,
       success_url: `${siteUrl}/succes?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/panier`,
       locale: 'fr',
