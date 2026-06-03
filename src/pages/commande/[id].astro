@@ -30,6 +30,11 @@ if (!db) {
         paidAt: toMs(data.paidAt),
         shippedAt: toMs(data.shippedAt) || null,
         deliveredAt: toMs(data.deliveredAt) || null,
+        statusHistory: ((data.statusHistory as Array<{ status: OrderStatus; at: unknown; note?: string }>) || []).map((h) => ({
+          status: h.status,
+          at: toMs(h.at),
+          note: h.note,
+        })),
       };
     } else {
       errorMessage = 'Commande introuvable.';
@@ -43,36 +48,57 @@ function fmt(cents: number, currency = 'EUR'): string {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency.toUpperCase() }).format(cents / 100);
 }
 function formatDate(ms: number): string {
-  if (!ms) return '—';
+  if (!ms) return '';
   return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(ms));
 }
 
-const steps: Array<{ status: OrderStatus; label: string; done: boolean; date: number | null }> = order
-  ? [
-      { status: 'paid', label: 'Paiement reçu', done: order.paidAt > 0, date: order.paidAt || null },
-      {
-        status: 'processing',
-        label: 'En préparation',
-        done: order.status === 'processing' || order.status === 'shipped' || order.status === 'delivered',
-        date: null,
-      },
-      { status: 'shipped', label: 'Expédiée', done: order.status === 'shipped' || order.status === 'delivered', date: order.shippedAt },
-      { status: 'delivered', label: 'Livrée', done: order.status === 'delivered', date: order.deliveredAt },
-    ]
+const stepDefs: Array<{ status: OrderStatus; label: string; icon: string; desc: string }> = [
+  { status: 'paid', label: 'Paiement reçu', icon: '💳', desc: 'Votre commande nous est parvenue' },
+  { status: 'processing', label: 'En préparation', icon: '👨‍🍳', desc: 'Nous préparons votre colis avec soin' },
+  { status: 'shipped', label: 'Expédiée', icon: '📦', desc: 'Votre commande est en route' },
+  { status: 'delivered', label: 'Livrée', icon: '🎉', desc: 'Bonne dégustation !' },
+];
+
+function statusRank(s: OrderStatus): number {
+  return { paid: 0, processing: 1, shipped: 2, delivered: 3, cancelled: -1 }[s] ?? -1;
+}
+
+// Pour chaque step, dater à partir du statusHistory si disponible
+const steps = order
+  ? stepDefs.map((def, idx) => {
+      const histEntry = (order!.statusHistory || []).find((h) => h.status === def.status);
+      const currentRank = statusRank(order!.status);
+      const done = idx <= currentRank;
+      let date: number | null = histEntry?.at ?? null;
+      if (def.status === 'paid' && !date) date = order!.paidAt || null;
+      if (def.status === 'shipped' && !date) date = order!.shippedAt || null;
+      if (def.status === 'delivered' && !date) date = order!.deliveredAt || null;
+      return { ...def, done, date };
+    })
   : [];
+
 const shortRef = order ? order.id.slice(-12).toUpperCase() : '';
+
+// Estimation livraison : shipped + 2-5 jours
+let etaText = '';
+if (order && order.status === 'shipped' && order.shippedAt) {
+  const min = new Date(order.shippedAt + 1 * 86400000);
+  const max = new Date(order.shippedAt + 5 * 86400000);
+  const fmtDate = (d: Date) => new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' }).format(d);
+  etaText = `Livraison estimée entre le ${fmtDate(min)} et le ${fmtDate(max)}`;
+}
 ---
 
 <Layout title={order ? `Commande #${shortRef} — Nayab Market` : 'Commande — Nayab Market'} noindex={true}>
-  <section class="py-12 px-4 sm:px-6 bg-gradient-to-br from-lapis-900 via-lapis-800 to-pomegranate-900 text-sand-50 relative overflow-hidden">
+  <section class="py-10 px-4 sm:px-6 bg-gradient-to-br from-lapis-900 via-lapis-800 to-pomegranate-900 text-sand-50 relative overflow-hidden">
     <div class="absolute inset-0 bg-kilim-pattern opacity-50"></div>
     <div class="relative z-10 max-w-3xl mx-auto text-center">
       <h1 class="font-display text-3xl sm:text-4xl font-bold text-saffron-300 mb-1">Suivi de commande</h1>
-      {order && <p class="font-mono text-sand-100">#{shortRef}</p>}
+      {order && <p class="font-mono text-sand-100 text-sm">#{shortRef} · {formatDate(order.createdAt)}</p>}
     </div>
   </section>
 
-  <section class="py-12 px-4 sm:px-6 bg-sand-50 min-h-[60vh]">
+  <section class="py-10 px-4 sm:px-6 bg-sand-50 min-h-[60vh]">
     <div class="max-w-3xl mx-auto">
       {errorMessage && (
         <div class="bg-white border-2 border-pomegranate-300 rounded-2xl p-8 text-center shadow-lg">
@@ -82,46 +108,68 @@ const shortRef = order ? order.id.slice(-12).toUpperCase() : '';
       )}
 
       {order && (
-        <div class="space-y-6">
+        <div class="space-y-6" data-order-id={order.id} data-current-status={order.status}>
+          {/* Banner principal selon le statut */}
           {order.status === 'cancelled' ? (
             <div class="bg-pomegranate-50 border-2 border-pomegranate-300 rounded-2xl p-6 text-center">
-              <h2 class="font-display text-xl text-pomegranate-700 mb-1">Commande annulée</h2>
+              <h2 class="font-display text-2xl text-pomegranate-700 mb-1">Commande annulée</h2>
               <p class="text-pomegranate-700 text-sm">Si vous avez une question, contactez-nous en répondant à votre email de commande.</p>
             </div>
           ) : (
-            <div class="bg-white rounded-2xl p-6 sm:p-8 border-2 border-saffron-200 shadow-lg">
-              <h2 class="font-display text-xl text-lapis-900 mb-6">Statut : <span class="text-pomegranate-700">{ORDER_STATUS_LABELS[order.status]}</span></h2>
-              <div class="relative pl-2">
-                {steps.map((step, idx) => (
-                  <div class="flex gap-4 pb-6 last:pb-0 relative">
-                    {idx < steps.length - 1 && (
-                      <div class={`absolute left-[15px] top-8 w-0.5 h-full ${step.done ? 'bg-saffron-400' : 'bg-sand-200'}`}></div>
-                    )}
-                    <div class={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${step.done ? 'bg-saffron-400 text-lapis-900' : 'bg-sand-200 text-lapis-500'}`}>
-                      {step.done ? '✓' : idx + 1}
-                    </div>
-                    <div class="flex-1 pt-1">
-                      <div class={`font-semibold ${step.done ? 'text-lapis-900' : 'text-lapis-500'}`}>{step.label}</div>
-                      {step.date && <div class="text-xs text-lapis-600">{formatDate(step.date)}</div>}
-                    </div>
-                  </div>
-                ))}
+            <div class="bg-white rounded-2xl border-2 border-saffron-200 shadow-lg overflow-hidden">
+              <div class="bg-gradient-to-r from-lapis-900 to-pomegranate-900 text-saffron-300 px-6 py-4">
+                <div class="text-xs uppercase tracking-widest text-sand-200">Statut actuel</div>
+                <div class="font-display text-2xl font-bold" id="status-label">{ORDER_STATUS_LABELS[order.status]}</div>
               </div>
 
-              {order.shipping.trackingNumber && (
-                <div class="mt-4 p-4 bg-saffron-50 border border-saffron-300 rounded-lg">
-                  <div class="text-xs text-lapis-600 uppercase tracking-wide">Numéro de suivi</div>
-                  <div class="font-mono font-bold text-lapis-900 mt-1 break-all">{order.shipping.trackingNumber}</div>
-                  {order.shipping.trackingUrl && (
-                    <a href={order.shipping.trackingUrl} target="_blank" rel="noopener" class="inline-block mt-2 text-pomegranate-700 font-semibold hover:underline">
-                      Suivre le colis →
-                    </a>
-                  )}
+              {/* Bouton suivi prominent si expédié */}
+              {order.shipping.trackingUrl && (
+                <div class="bg-saffron-50 border-b-2 border-saffron-300 px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <div class="text-xs text-lapis-600 uppercase tracking-wide">Numéro de suivi transporteur</div>
+                    <div class="font-mono font-bold text-lapis-900 break-all">{order.shipping.trackingNumber}</div>
+                  </div>
+                  <a
+                    href={order.shipping.trackingUrl}
+                    target="_blank"
+                    rel="noopener"
+                    class="px-5 py-3 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold whitespace-nowrap hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition-all text-center"
+                  >
+                    📦 Suivre le colis →
+                  </a>
                 </div>
               )}
+
+              {etaText && (
+                <div class="bg-sand-100 px-6 py-3 text-sm text-lapis-800 border-b border-sand-200">
+                  ⏱ {etaText}
+                </div>
+              )}
+
+              {/* Timeline */}
+              <div class="p-6">
+                <div id="timeline" class="relative pl-2">
+                  {steps.map((step, idx) => (
+                    <div class="flex gap-4 pb-6 last:pb-0 relative" data-step={step.status}>
+                      {idx < steps.length - 1 && (
+                        <div class={`absolute left-[19px] top-12 w-0.5 h-full -translate-x-1/2 ${step.done ? 'bg-saffron-400' : 'bg-sand-200'}`}></div>
+                      )}
+                      <div class={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0 transition-all ${step.done ? 'bg-saffron-400 text-lapis-900 shadow-lg shadow-saffron-500/30' : 'bg-sand-200 text-lapis-400'}`}>
+                        {step.icon}
+                      </div>
+                      <div class="flex-1 pt-1.5">
+                        <div class={`font-semibold ${step.done ? 'text-lapis-900' : 'text-lapis-500'}`}>{step.label}</div>
+                        <div class={`text-sm ${step.done ? 'text-lapis-700' : 'text-lapis-400'}`}>{step.desc}</div>
+                        {step.date && <div class="text-xs text-lapis-500 mt-0.5">{formatDate(step.date)}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
+          {/* Récap */}
           <div class="bg-white rounded-2xl p-6 sm:p-8 border-2 border-saffron-200 shadow-lg">
             <h2 class="font-display text-xl text-lapis-900 mb-4">Récapitulatif</h2>
             <div class="space-y-3 mb-4">
@@ -142,6 +190,7 @@ const shortRef = order ? order.id.slice(-12).toUpperCase() : '';
             </div>
           </div>
 
+          {/* Adresse */}
           {(order.shipping.name || order.shipping.address?.line1) && (
             <div class="bg-white rounded-2xl p-6 sm:p-8 border-2 border-saffron-200 shadow-lg">
               <h2 class="font-display text-xl text-lapis-900 mb-3">Adresse de livraison</h2>
@@ -157,13 +206,50 @@ const shortRef = order ? order.id.slice(-12).toUpperCase() : '';
             </div>
           )}
 
-          <div class="text-center">
-            <a href="/boutique" class="inline-block px-6 py-3 border-2 border-lapis-900 text-lapis-900 rounded-full font-semibold hover:bg-lapis-900 hover:text-saffron-300 transition-all">
+          <div class="flex flex-col sm:flex-row gap-3 justify-center">
+            <a href="/compte?tab=commandes" class="text-center px-6 py-3 border-2 border-lapis-900 text-lapis-900 rounded-full font-semibold hover:bg-lapis-900 hover:text-saffron-300 transition-all">
+              ← Mes commandes
+            </a>
+            <a href="/boutique" class="text-center px-6 py-3 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition">
               Continuer mes achats →
             </a>
           </div>
+
+          <p class="text-center text-xs text-lapis-500 pt-4" id="auto-refresh-note">
+            🔄 Le statut se met à jour automatiquement.
+          </p>
         </div>
       )}
     </div>
   </section>
 </Layout>
+
+<script>
+  // Polling toutes les 20 s pour détecter les changements de statut.
+  // Si quelque chose a changé, on recharge la page (le serveur a déjà
+  // la logique de rendu — pas besoin de la dupliquer côté client).
+  const container = document.querySelector<HTMLElement>('[data-order-id]');
+  if (container) {
+    const orderId = container.dataset.orderId!;
+    const initialStatus = container.dataset.currentStatus!;
+    let stopped = false;
+
+    const tick = async () => {
+      if (stopped || document.hidden) return;
+      try {
+        const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}/status`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.status && data.status !== initialStatus) {
+          stopped = true;
+          window.location.reload();
+        }
+      } catch {
+        // silencieux : on retentera au prochain tick
+      }
+    };
+
+    const interval = setInterval(tick, 20_000);
+    window.addEventListener('beforeunload', () => clearInterval(interval));
+  }
+</script>

@@ -30,6 +30,7 @@ function buildOrderFromSession(session: Stripe.Checkout.Session, lineItems: Stri
   return {
     id: session.id,
     status: 'paid',
+    statusHistory: [{ status: 'paid', at: now }],
     userId: (session.metadata?.userId as string | undefined) || null,
     customer: {
       email: customer?.email || session.customer_email || '',

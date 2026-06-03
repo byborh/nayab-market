@@ -34,7 +34,13 @@ function ensureApp(): App | null {
 export function getAdminFirestore(): Firestore | null {
   const a = ensureApp();
   if (!a) return null;
-  if (!firestore) firestore = getFirestore(a);
+  if (!firestore) {
+    firestore = getFirestore(a);
+    // Firestore refuse les `undefined` par défaut. Comme les payloads Stripe
+    // contiennent souvent des champs optionnels non renseignés (phone, line2…),
+    // on demande à Firestore de simplement les ignorer plutôt que de planter.
+    firestore.settings({ ignoreUndefinedProperties: true });
+  }
   return firestore;
 }
 

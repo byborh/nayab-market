@@ -445,7 +445,7 @@ PUBLIC_FIREBASE_APP_ID=...</code></pre>
     auth = getAuth(app);
     db = getFirestore(app);
 
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
       if (user) {
         // Vérifier le rôle admin avant de montrer l'interface
         try {

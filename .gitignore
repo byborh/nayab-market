@@ -22,6 +22,9 @@ yarn-error.log*
 # Cloudflare
 .wrangler/
 
+# Vercel
+.vercel/
+
 # editor
 .vscode/
 .idea/

@@ -183,13 +183,25 @@ export const prerender = false;
       return;
     }
 
+    const nextAction: Record<OrderStatus, { label: string; next: OrderStatus; needsDetails?: boolean } | null> = {
+      paid: { label: '→ En préparation', next: 'processing' },
+      processing: { label: '→ Expédier', next: 'shipped', needsDetails: true },
+      shipped: { label: '→ Livrée', next: 'delivered' },
+      delivered: null,
+      cancelled: null,
+    };
+
     ordersList.innerHTML = list
       .map((o) => {
         const statusClass = ORDER_STATUS_COLORS[o.status] || 'bg-sand-100 text-lapis-700 border-sand-300';
         const itemsCount = o.items.reduce((s, i) => s + i.qty, 0);
+        const action = nextAction[o.status];
+        const quickBtn = action
+          ? `<button data-id="${escapeHtml(o.id)}" data-next="${action.next}" data-needs-details="${action.needsDetails ? '1' : ''}" class="quick-action-btn px-4 py-2 bg-gradient-to-br from-saffron-400 to-saffron-500 text-lapis-900 rounded-full text-sm font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-saffron-500/40 transition-all whitespace-nowrap">${action.label}</button>`
+          : '';
         return `
         <div class="bg-white rounded-2xl border-2 border-saffron-200 shadow-md hover:shadow-xl transition-all overflow-hidden">
-          <div class="p-5 grid grid-cols-1 md:grid-cols-[1fr,auto,auto] gap-4 items-center">
+          <div class="p-5 grid grid-cols-1 md:grid-cols-[1fr,auto,auto,auto] gap-3 items-center">
             <div>
               <div class="flex items-center gap-2 mb-1">
                 <span class="font-mono text-xs text-lapis-500">#${shortRef(o.id)}</span>
@@ -200,8 +212,9 @@ export const prerender = false;
               <div class="text-xs text-lapis-500 mt-1">${itemsCount} article${itemsCount > 1 ? 's' : ''} · ${formatDate(o.createdAt)}</div>
             </div>
             <div class="font-accent text-2xl font-bold text-pomegranate-700 md:text-right">${fmt(o.amounts.total, o.amounts.currency)}</div>
-            <button data-id="${escapeHtml(o.id)}" class="open-order-btn px-5 py-2 bg-lapis-900 text-saffron-300 rounded-full text-sm font-semibold hover:bg-lapis-800 transition">
-              Détails →
+            ${quickBtn}
+            <button data-id="${escapeHtml(o.id)}" class="open-order-btn px-4 py-2 border-2 border-lapis-900 text-lapis-900 rounded-full text-sm font-semibold hover:bg-lapis-900 hover:text-saffron-300 transition">
+              Détails
             </button>
           </div>
         </div>`;
@@ -211,6 +224,42 @@ export const prerender = false;
     ordersList.querySelectorAll<HTMLButtonElement>('.open-order-btn').forEach((btn) => {
       btn.addEventListener('click', () => openOrder(btn.dataset.id!));
     });
+    ordersList.querySelectorAll<HTMLButtonElement>('.quick-action-btn').forEach((btn) => {
+      btn.addEventListener('click', () => quickAdvance(btn.dataset.id!, btn.dataset.next as OrderStatus, btn.dataset.needsDetails === '1'));
+    });
+  }
+
+  async function quickAdvance(id: string, next: OrderStatus, needsDetails: boolean) {
+    const o = orders.find((x) => x.id === id);
+    if (!o) return;
+
+    // Si l'expédition nécessite un numéro de suivi, on ouvre la modal détaillée
+    if (needsDetails) {
+      openOrder(id);
+      // Pré-sélectionner le statut "shipped" dans la modal pour gain de temps
+      setTimeout(() => {
+        const select = document.getElementById('u-status') as HTMLSelectElement | null;
+        if (select) select.value = next;
+        const tracking = document.getElementById('u-tracking') as HTMLInputElement | null;
+        tracking?.focus();
+      }, 100);
+      return;
+    }
+
+    if (!confirm(`Passer la commande #${shortRef(o.id)} au statut "${ORDER_STATUS_LABELS[next]}" ?\n\nUn email de notification sera envoyé au client.`)) return;
+
+    try {
+      const token = await currentUser!.getIdToken();
+      const res = await fetch(`/api/orders/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: next, notify: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur');
+    } catch (err) {
+      alert('Erreur : ' + (err as Error).message);
+    }
   }
 
   function openOrder(id: string) {
@@ -262,6 +311,23 @@ export const prerender = false;
         <div class="flex justify-between"><span class="text-lapis-600">Livraison</span><span>${fmt(o.amounts.shipping, o.amounts.currency)}</span></div>
         <div class="flex justify-between font-bold text-lg text-lapis-900 pt-2 border-t border-lapis-900"><span>Total</span><span class="text-pomegranate-700">${fmt(o.amounts.total, o.amounts.currency)}</span></div>
       </div>
+
+      ${
+        o.statusHistory && o.statusHistory.length > 0
+          ? `<h3 class="font-display text-lg text-lapis-900 mb-2">Historique</h3>
+             <ul class="text-sm mb-6 space-y-1 bg-sand-50 rounded-lg p-4">
+               ${o.statusHistory
+                 .slice()
+                 .sort((a, b) => {
+                   const aMs = typeof a.at === 'object' && a.at && 'toMillis' in a.at ? (a.at as { toMillis: () => number }).toMillis() : Number(a.at) || 0;
+                   const bMs = typeof b.at === 'object' && b.at && 'toMillis' in b.at ? (b.at as { toMillis: () => number }).toMillis() : Number(b.at) || 0;
+                   return bMs - aMs;
+                 })
+                 .map((h) => `<li class="flex justify-between gap-2"><span class="font-semibold text-lapis-900">${ORDER_STATUS_LABELS[h.status] || h.status}</span><span class="text-lapis-600">${formatDate(h.at)}</span></li>`)
+                 .join('')}
+             </ul>`
+          : ''
+      }
 
       <h3 class="font-display text-lg text-lapis-900 mb-3">Mise à jour</h3>
       <form id="update-form" class="space-y-3 bg-sand-50 rounded-lg p-4">

@@ -1,7 +1,11 @@
 import type { APIRoute } from 'astro';
 import { getAdminFirestore, getAdminAuth, FieldValue } from '~/lib/firebase-admin';
-import { sendShippingNotification } from '~/lib/email';
-import type { Order, OrderStatus } from '~/lib/orders';
+import {
+  sendShippingNotification,
+  sendProcessingNotification,
+  sendDeliveryConfirmation,
+} from '~/lib/email';
+import type { Order, OrderStatus, StatusHistoryEntry } from '~/lib/orders';
 import { ORDER_STATUS_OPTIONS } from '~/lib/orders';
 
 export const prerender = false;
@@ -15,7 +19,6 @@ async function requireAdmin(request: Request): Promise<string | null> {
   const idToken = authHeader.slice(7);
   try {
     const decoded = await auth.verifyIdToken(idToken);
-    // Vérifier que l'utilisateur est bien admin (présent dans la collection admins)
     const adminDoc = await db.collection('admins').doc(decoded.uid).get();
     if (!adminDoc.exists) return null;
     return decoded.uid;
@@ -42,9 +45,7 @@ export const PATCH: APIRoute = async ({ request, params }) => {
   }
 
   const id = params.id;
-  if (!id) {
-    return new Response(JSON.stringify({ error: 'ID manquant' }), { status: 400 });
-  }
+  if (!id) return new Response(JSON.stringify({ error: 'ID manquant' }), { status: 400 });
 
   let body: {
     status?: OrderStatus;
@@ -65,21 +66,39 @@ export const PATCH: APIRoute = async ({ request, params }) => {
     return new Response(JSON.stringify({ error: 'Commande introuvable' }), { status: 404 });
   }
   const order = snap.data() as Order;
+  const now = Date.now();
 
   const updates: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
-  let willSendShippingEmail = false;
+  let emailToSend: ((o: Order) => Promise<void>) | null = null;
+
+  const statusChanged = body.status && body.status !== order.status;
 
   if (body.status) {
     if (!ORDER_STATUS_OPTIONS.includes(body.status)) {
       return new Response(JSON.stringify({ error: 'Statut invalide' }), { status: 400 });
     }
     updates.status = body.status;
-    if (body.status === 'shipped' && !order.shippedAt) {
-      updates.shippedAt = FieldValue.serverTimestamp();
-      willSendShippingEmail = body.notify !== false;
-    }
-    if (body.status === 'delivered' && !order.deliveredAt) {
-      updates.deliveredAt = FieldValue.serverTimestamp();
+
+    if (statusChanged) {
+      // Append à l'historique
+      const newEntry: StatusHistoryEntry = { status: body.status, at: now };
+      updates.statusHistory = FieldValue.arrayUnion(newEntry);
+
+      // Email à envoyer selon le nouveau statut (si notify=true)
+      const shouldNotify = body.notify !== false;
+      if (shouldNotify) {
+        if (body.status === 'processing') emailToSend = sendProcessingNotification;
+        if (body.status === 'shipped') emailToSend = sendShippingNotification;
+        if (body.status === 'delivered') emailToSend = sendDeliveryConfirmation;
+      }
+
+      // Timestamps fixes pour les étapes importantes
+      if (body.status === 'shipped' && !order.shippedAt) {
+        updates.shippedAt = FieldValue.serverTimestamp();
+      }
+      if (body.status === 'delivered' && !order.deliveredAt) {
+        updates.deliveredAt = FieldValue.serverTimestamp();
+      }
     }
   }
 
@@ -102,9 +121,9 @@ export const PATCH: APIRoute = async ({ request, params }) => {
     );
   }
 
-  if (willSendShippingEmail && order.customer.email) {
+  if (emailToSend && order.customer.email) {
     const refreshed = (await ref.get()).data() as Order;
-    await sendShippingNotification(refreshed);
+    await emailToSend(refreshed);
   }
 
   return new Response(JSON.stringify({ ok: true }), {

@@ -168,6 +168,65 @@ export async function sendAdminNewOrderAlert(order: Order): Promise<void> {
   }
 }
 
+// ============ PROCESSING NOTIFICATION (customer) ============
+
+export async function sendProcessingNotification(order: Order): Promise<void> {
+  if (!resend) {
+    console.warn('[email] RESEND_API_KEY manquant — notification "en préparation" non envoyée');
+    return;
+  }
+  const trackingUrl = `${siteUrl}/commande/${order.id}`;
+  const html = baseLayout(`
+    <h1 style="font-family:Georgia,serif;color:#0d1f3f;font-size:24px;margin:0 0 8px;">👨‍🍳 Votre commande est en préparation</h1>
+    <p style="color:#624a1c;margin:0 0 24px;">Référence : <strong>#${shortRef(order.id)}</strong></p>
+    <p style="color:#0d1f3f;line-height:1.6;">Nous préparons soigneusement votre commande. Vous recevrez un nouvel email dès qu'elle aura été expédiée, avec le numéro de suivi.</p>
+    <div style="text-align:center;margin:32px 0;">
+      <a href="${trackingUrl}" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#ffc445,#f5ab1c);color:#142e5d;text-decoration:none;border-radius:50px;font-weight:600;">Voir ma commande</a>
+    </div>
+    <p style="color:#624a1c;font-size:13px;line-height:1.6;text-align:center;">Merci pour votre confiance.</p>
+  `);
+  try {
+    await resend.emails.send({
+      from: fromEmail,
+      to: order.customer.email,
+      subject: `Commande #${shortRef(order.id)} en préparation — Nayab Market`,
+      html,
+    });
+  } catch (err) {
+    console.error('[email] sendProcessingNotification failed:', err);
+  }
+}
+
+// ============ DELIVERY CONFIRMATION (customer) ============
+
+export async function sendDeliveryConfirmation(order: Order): Promise<void> {
+  if (!resend) {
+    console.warn('[email] RESEND_API_KEY manquant — confirmation de livraison non envoyée');
+    return;
+  }
+  const trackingUrl = `${siteUrl}/commande/${order.id}`;
+  const html = baseLayout(`
+    <h1 style="font-family:Georgia,serif;color:#0d1f3f;font-size:24px;margin:0 0 8px;">🎉 Votre commande est arrivée !</h1>
+    <p style="color:#624a1c;margin:0 0 24px;">Référence : <strong>#${shortRef(order.id)}</strong></p>
+    <p style="color:#0d1f3f;line-height:1.6;">On espère que vous prendrez autant de plaisir à déguster nos produits que nous en avons eu à les sélectionner pour vous.</p>
+    <p style="color:#0d1f3f;line-height:1.6;">Une question sur un produit ? Une recette à partager ? Répondez simplement à ce mail, on est toujours ravis d'échanger.</p>
+    <div style="text-align:center;margin:32px 0;">
+      <a href="${siteUrl}/boutique" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#ffc445,#f5ab1c);color:#142e5d;text-decoration:none;border-radius:50px;font-weight:600;">Découvrir d'autres produits</a>
+    </div>
+    <p style="color:#624a1c;font-size:13px;line-height:1.6;text-align:center;">Merci d'avoir choisi Nayab Market — à très vite.</p>
+  `);
+  try {
+    await resend.emails.send({
+      from: fromEmail,
+      to: order.customer.email,
+      subject: `Commande #${shortRef(order.id)} livrée — Nayab Market`,
+      html,
+    });
+  } catch (err) {
+    console.error('[email] sendDeliveryConfirmation failed:', err);
+  }
+}
+
 // ============ SHIPPING NOTIFICATION (customer) ============
 
 export async function sendShippingNotification(order: Order): Promise<void> {

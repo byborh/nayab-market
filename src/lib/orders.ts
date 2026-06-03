@@ -47,9 +47,17 @@ export type OrderAddress = {
   country?: string;
 };
 
+export type StatusHistoryEntry = {
+  status: OrderStatus;
+  at: number;
+  note?: string;
+};
+
 export type Order = {
   id: string;
   status: OrderStatus;
+  /** Historique chronologique des changements de statut. */
+  statusHistory?: StatusHistoryEntry[];
   /** UID de l'utilisateur si commande passée en étant connecté, sinon null. */
   userId?: string | null;
   customer: {
